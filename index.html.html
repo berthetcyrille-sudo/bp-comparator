@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Comparateur BP Avant / Après — STE</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#fff;--bg2:#f5f5f4;--bg3:#eeedea;--text:#1a1a1a;--text2:#6b6b6b;--text3:#9a9a9a;--brd:rgba(0,0,0,0.11);--brd2:rgba(0,0,0,0.20);--ok-bg:#eaf3de;--ok:#2e6010;--ko-bg:#fceaea;--ko:#9e2b2b;--inf-bg:#e6f1fb;--inf:#155899;--r:8px;--rl:12px;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--text:#f0f0ea;--text2:#a0a09a;--text3:#6a6a64;--brd:rgba(255,255,255,0.10);--brd2:rgba(255,255,255,0.20);--ok-bg:#17340a;--ok:#b0d880;--ko-bg:#4e1212;--ko:#f09090;--inf-bg:#042750;--inf:#90c4f4;}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.6;}
+.wrap{max-width:960px;margin:0 auto;padding:2rem 1.5rem;}
+h1{font-size:22px;font-weight:500;margin-bottom:3px;}
+.sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;}
+.drop-single{border:2px dashed var(--brd2);border-radius:var(--rl);padding:2.5rem 2rem;text-align:center;cursor:pointer;background:var(--bg2);transition:background .15s,border-color .15s;margin-bottom:1rem;}
+.drop-single:hover,.drop-single.drag{background:var(--inf-bg);border-color:var(--inf);}
+.drop-single.done{background:var(--ok-bg);border-color:var(--ok);border-style:solid;cursor:default;}
+.drop-ico{font-size:32px;display:block;margin-bottom:8px;}.drop-title{font-weight:500;font-size:15px;margin-bottom:4px;}.drop-hint{font-size:12px;color:var(--text3);}
+.state-box{background:var(--bg);border:.5px solid var(--brd2);border-radius:var(--rl);padding:1.25rem;margin-bottom:1rem;display:none;}.state-box.on{display:block;}
+.state-title{font-weight:500;font-size:14px;margin-bottom:10px;}
+.file-badge{display:inline-flex;align-items:center;gap:6px;background:var(--ok-bg);color:var(--ok);border-radius:var(--r);padding:4px 10px;font-size:13px;font-weight:500;margin-bottom:10px;}
+.sheet-rows{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}.sheet-row label{font-size:13px;font-weight:500;display:block;margin-bottom:4px;}
+select{width:100%;padding:6px 10px;border-radius:var(--r);border:.5px solid var(--brd2);background:var(--bg);color:var(--text);font-size:13px;cursor:pointer;}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.info-bar{background:var(--bg2);border-radius:var(--r);padding:9px 14px;margin-bottom:1rem;display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text2);border:.5px solid var(--brd);}.info-bar strong{color:var(--text);}
+.row-year{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;}.row-year label{font-size:13px;font-weight:500;}
+.year-btn{font-size:12px;padding:4px 12px;border-radius:var(--r);border:.5px solid var(--brd2);background:var(--bg);color:var(--text2);cursor:pointer;}.year-btn.active{background:var(--inf-bg);color:var(--inf);border-color:transparent;font-weight:500;}
+.tab-bar{display:flex;gap:8px;border-bottom:.5px solid var(--brd);padding-bottom:10px;margin-bottom:1rem;align-items:center;flex-wrap:wrap;}
+.tab{font-size:13px;padding:5px 14px;border-radius:var(--r);border:.5px solid var(--brd2);background:transparent;color:var(--text2);cursor:pointer;}.tab.active{background:var(--inf-bg);color:var(--inf);font-weight:500;border-color:transparent;}
+.spacer{flex:1;}
+.btn{font-size:13px;padding:6px 16px;border-radius:var(--r);border:.5px solid var(--brd2);background:var(--bg);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;}.btn:hover{background:var(--bg2);}
+.btn-primary{background:#1a1a2e;color:#fff;border-color:transparent;}.btn-primary:hover{background:#2d2d4e;}
+.btn-ghost{background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;text-decoration:underline;padding:0;}
+.card{background:var(--bg);border:.5px solid var(--brd);border-radius:var(--rl);padding:1rem 1.25rem;margin-bottom:1.25rem;overflow-x:auto;}
+.ctx{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.7;}.ctx strong{color:var(--text);}
+table{width:100%;border-collapse:collapse;}thead tr{border-bottom:.5px solid var(--brd2);}
+th{text-align:left;padding:6px 8px;font-weight:500;color:var(--text2);font-size:12px;white-space:nowrap;}th.r{text-align:right;}
+td{padding:6px 8px;border-bottom:.5px solid var(--brd);font-size:13px;vertical-align:middle;}td.r{text-align:right;font-family:var(--mono);font-size:12px;}
+tr:last-child td{border-bottom:none;}.tr-tot td{font-weight:600;background:var(--bg2);border-top:.5px solid var(--brd2);}
+.tr-decomp td{font-size:12px;color:var(--text2);border-bottom:.5px solid var(--brd);}.tr-decomp-head td{font-weight:500;color:var(--text);font-size:12px;padding-top:10px;}
+.pos-t{color:var(--ok);}.neg-t{color:var(--ko);}
+.err{color:var(--ko);font-size:13px;background:var(--ko-bg);border-radius:var(--r);padding:10px 14px;margin-bottom:1rem;}
+.loading{color:var(--text2);font-size:13px;padding:6px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Comparateur BP Avant / Après</h1>
+  <p class="sub">Analyse des écarts entre deux versions d'un business plan — formats SONEKA Cashflow trimestriel ou Comparateur.</p>
+  <div id="dropZone" class="drop-single" onclick="trigFiles()" ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave()">
+    <span class="drop-ico" id="dropIco">📂</span>
+    <p class="drop-title" id="dropTitle">Déposez vos fichiers BP ici</p>
+    <p class="drop-hint" id="dropHint">1 fichier avec 2 onglets — ou 2 fichiers simultanément — ou l'un après l'autre · .xlsx accepté</p>
+  </div>
+  <div class="state-box" id="waitSecond">
+    <p class="state-title">✅ Premier fichier chargé — déposez le deuxième</p>
+    <div class="file-badge" id="firstFileBadge"></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px">Déposez le deuxième fichier BP dans la zone ci-dessus.</p>
+    <button class="btn-ghost" onclick="resetAll()">↩ Recommencer</button>
+  </div>
+  <div class="state-box" id="sheetPicker">
+    <p class="state-title">📊 Plusieurs onglets BP détectés — <span id="pickerFileName" style="font-weight:400;color:var(--text2)"></span></p>
+    <div class="sheet-rows">
+      <div><label>Onglet BP Avant</label><select id="selAv"></select></div>
+      <div><label>Onglet BP Après</label><select id="selAp"></select></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="confirmSheets()">Analyser →</button>
+      <button class="btn-ghost" onclick="resetAll()">↩ Recommencer</button>
+    </div>
+  </div>
+  <div id="errBox" style="display:none" class="err"></div>
+  <div id="ldg" style="display:none" class="loading">⏳ Lecture en cours…</div>
+  <div id="app" style="display:none">
+    <div class="info-bar" id="infoBar"></div>
+    <div class="row-year"><label>Année analysée :</label><div id="yearBtns"></div></div>
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('surfaces')">📐 1 — Surfaces</button>
+      <button class="tab" onclick="switchTab('loyer_brut')">💶 2 — Loyer brut</button>
+      <button class="tab" onclick="switchTab('honoraires')">📋 3 — Honoraires commer.</button>
+      <button class="tab" onclick="switchTab('loyer_net')">📊 4 — Loyer net (EBE)</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="exportBtn" onclick="exportExcel()">⬇ Export Excel</button>
+      <button class="btn-ghost" style="margin-left:8px" onclick="resetAll()">↩ Nouveau</button>
+    </div>
+    <div id="tabContent"></div>
+  </div>
+</div>
+<script>
+/* ════ ÉTAT ════ */
+let dAv=null,dAp=null,selYear=null,curTab='surfaces',pendingWb=null,pendingData=null;
+
+/* ════ DÉTECTION FORMAT ════ */
+function isCFSheet(wb,n){try{const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:null,range:0});if(!r.length)return false;const k=Object.keys(r[0]);return k.includes('Date de référence')&&k.includes('Montant')&&k.includes('Compte');}catch{return false;}}
+function isComp(wb,n){try{const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:null});if(!a.length)return false;return String(a[0][0]||'').includes('Cashflows')||a[0].slice(2).some(v=>typeof v==='number'&&v>2000&&v<2050);}catch{return false;}}
+function detectFmt(wb,n){if(isCFSheet(wb,n))return'cf';if(isComp(wb,n))return'comp';return null;}
+function isBP(wb,n){return!!detectFmt(wb,n);}
+
+/* ════ PARSERS ════ */
+function parseCF(wb,sn,label){
+  const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:null});
+  if(!raw.length)throw new Error(`Onglet "${sn}" vide.`);
+  const sk=Object.keys(raw[0]).find(k=>k==='Scénario');
+  const scenario=sk?(raw[0][sk]||label):label;
+  const years=[...new Set(raw.map(r=>String(r['Date de référence']||'').slice(0,4)).filter(y=>y&&y!=='null'))].sort();
+  function aggBail(year,fn){const m={};raw.forEach(r=>{if(String(r['Date de référence']||'').slice(0,4)!==year||!fn(r))return;const b=r['Nom du bail']||'?';if(b==='Tous')return;m[b]=(m[b]||0)+(Number(r['Montant'])||0);});return m;}
+  function aggTotal(year,fn){let t=0;raw.forEach(r=>{if(String(r['Date de référence']||'').slice(0,4)===year&&fn(r))t+=Number(r['Montant'])||0;});return t;}
+  return{scenario,years,label,format:'cf',aggBail,aggTotal};
+}
+function parseComp(wb,sn,label){
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+  if(!aoa.length)throw new Error(`Onglet "${sn}" vide.`);
+  const yc={};aoa[0].forEach((v,ci)=>{if(typeof v==='number'&&v>2000&&v<2050)yc[String(v)]=ci;});
+  const years=Object.keys(yc).sort();
+  const scenario=String(aoa[0][0]||label).replace(/Cashflows de l'immeuble:\s*/,'').split('|')[0].trim()||label;
+  function gv(p,b,y){const ci=yc[y];if(!ci)return 0;for(let i=1;i<aoa.length;i++){const r=aoa[i];if(r&&String(r[0]||'').trim()===p&&String(r[1]||'').trim()===b)return Number(r[ci])||0;}return 0;}
+  function gb(p){const s=new Set();for(let i=1;i<aoa.length;i++){const r=aoa[i];if(!r)continue;const pp=String(r[0]||'').trim(),bb=String(r[1]||'').trim();if(pp===p&&bb&&bb!=='Tous'&&bb!=='Total')s.add(bb);}return[...s];}
+  function abp(y,ps){const m={};ps.forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;}
+  function atp(y,p){return gv(p,'Tous',y)||gv(p,'Total',y)||0;}
+  return{scenario,years,label,format:'comp',
+    aggBailSurface:y=>abp(y,['Surface occupée']),
+    aggBailLoyerBrut:y=>{const m={};['Loyer','Franchise','Palier','Participation aux travaux preneurs'].forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;},
+    aggBailHonoCom:y=>abp(y,['Honoraires de commercialisation']),
+    aggBailEBE:y=>{const m={};const lb=abp(y,['Loyer','Franchise','Palier','Participation aux travaux preneurs']);const hc=abp(y,['Honoraires de commercialisation']);Object.entries(lb).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});Object.entries(hc).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});return m;},
+    aggTotalSurface:y=>atp(y,'Surface occupée'),
+    aggTotalLoyerBrut:y=>atp(y,"Revenus Locatifs")+atp(y,"Mesures d'accompagnement"),
+    aggTotalHonoCom:y=>atp(y,'Honoraires de commercialisation'),
+    aggTotalChargesR:y=>atp(y,'Charges Recup.'),
+    aggTotalCharges:y=>atp(y,'Charges'),
+    aggTotalEBE:y=>atp(y,"Revenus Locatifs")+atp(y,"Mesures d'accompagnement")+atp(y,'Honoraires de commercialisation')+atp(y,'Charges Recup.')+atp(y,'Charges'),
+  };
+}
+function parseSheet(wb,sn,label){const f=detectFmt(wb,sn);if(f==='cf')return parseCF(wb,sn,label);if(f==='comp')return parseComp(wb,sn,label);throw new Error(`Format non reconnu : "${sn}".`);}
+
+/* ════ AGRÉGATION COMMUNE ════ */
+const CF={
+  surface:r=>r['Sous-catégorie']==='Surface'&&r['Compte']===1,
+  loyerBrut:r=>{const c=r['Compte'],cat=r['Catégorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement");},
+  honoCom:r=>r['Sous-catégorie']==='Honoraires de commercialisation'&&r['Compte']===8503,
+  chargesR:r=>r['Compte']===5200&&r['Catégorie']==='Charges Recup',
+  charges:r=>r['Compte']===6000&&r['Catégorie']==='Charges',
+  ebe:r=>{const c=r['Compte'],cat=r['Catégorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement")||(r['Sous-catégorie']==='Honoraires de commercialisation'&&c===8503)||(c===5200&&cat==='Charges Recup')||(c===6000&&cat==='Charges');}
+};
+function getAggBail(d,t,y){
+  if(d.format==='comp'){if(t==='surface')return d.aggBailSurface(y);if(t==='loyerBrut')return d.aggBailLoyerBrut(y);if(t==='honoCom')return d.aggBailHonoCom(y);if(t==='ebe')return d.aggBailEBE(y);}
+  return d.aggBail(y,CF[t]);
+}
+function getTotal(d,t,y){
+  if(d.format==='comp'){if(t==='surface')return d.aggTotalSurface(y);if(t==='loyerBrut')return d.aggTotalLoyerBrut(y);if(t==='honoCom')return d.aggTotalHonoCom(y);if(t==='chargesR')return d.aggTotalChargesR(y);if(t==='charges')return d.aggTotalCharges(y);if(t==='ebe')return d.aggTotalEBE(y);}
+  return d.aggTotal(y,CF[t]||CF.ebe);
+}
+function buildComp(t,y){
+  const am=getAggBail(dAv,t,y),pm=getAggBail(dAp,t,y);
+  return[...new Set([...Object.keys(am),...Object.keys(pm)])].sort()
+    .map(b=>{const av=am[b]||0,ap=pm[b]||0,ec=ap-av;return{bail:b,av,ap,ec};})
+    .filter(r=>Math.abs(r.ec)>0.01);
+}
+
+/* ════ GESTION FICHIERS ════ */
+async function readWB(f){const ab=await f.arrayBuffer();return XLSX.read(new Uint8Array(ab),{type:'array'});}
+function trigFiles(){const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xlsm,.xls';i.multiple=true;i.onchange=e=>{if(e.target.files.length)handleFiles([...e.target.files]);};i.click();}
+function onDrop(e){e.preventDefault();onDragLeave();const fs=[...e.dataTransfer.files].filter(f=>f.name.match(/\.(xlsx|xlsm|xls)$/i));if(fs.length)handleFiles(fs);}
+function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag');}
+function onDragLeave(){document.getElementById('dropZone').classList.remove('drag');}
+async function handleFiles(files){
+  showErr(null);document.getElementById('ldg').style.display='block';
+  try{
+    if(files.length>=2){
+      const w1=await readWB(files[0]),w2=await readWB(files[1]);
+      dAv=parseSheet(w1,w1.SheetNames.find(n=>isBP(w1,n))||w1.SheetNames[0],files[0].name);
+      dAp=parseSheet(w2,w2.SheetNames.find(n=>isBP(w2,n))||w2.SheetNames[0],files[1].name);
+      setDropDone();renderApp();
+    }else{
+      const wb=await readWB(files[0]);
+      const bps=wb.SheetNames.filter(n=>isBP(wb,n));
+      if(bps.length>=2){
+        pendingWb=wb;
+        document.getElementById('pickerFileName').textContent=files[0].name;
+        ['selAv','selAp'].forEach((id,i)=>{document.getElementById(id).innerHTML=bps.map((s,j)=>`<option value="${s}"${j===i?'selected':''}>${s}</option>`).join('');});
+        document.getElementById('sheetPicker').classList.add('on');
+      }else if(bps.length===1){
+        if(!pendingData){pendingData=parseSheet(wb,bps[0],files[0].name);document.getElementById('firstFileBadge').textContent='📄 '+files[0].name;document.getElementById('waitSecond').classList.add('on');document.getElementById('dropHint').textContent='Déposez le deuxième fichier BP ici';}
+        else{dAv=pendingData;dAp=parseSheet(wb,bps[0],files[0].name);pendingData=null;document.getElementById('waitSecond').classList.remove('on');setDropDone();renderApp();}
+      }else showErr('Aucun onglet BP valide détecté.');
+    }
+  }catch(e){showErr('Erreur : '+e.message);}
+  finally{document.getElementById('ldg').style.display='none';}
+}
+function confirmSheets(){
+  const av=document.getElementById('selAv').value,ap=document.getElementById('selAp').value;
+  if(av===ap){showErr('Sélectionnez deux onglets différents.');return;}
+  showErr(null);
+  try{dAv=parseSheet(pendingWb,av,av);dAp=parseSheet(pendingWb,ap,ap);pendingWb=null;document.getElementById('sheetPicker').classList.remove('on');setDropDone();renderApp();}
+  catch(e){showErr('Erreur : '+e.message);}
+}
+function resetAll(){
+  dAv=null;dAp=null;selYear=null;curTab='surfaces';pendingWb=null;pendingData=null;
+  ['sheetPicker','waitSecond'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  const dz=document.getElementById('dropZone');dz.classList.remove('done','drag');
+  document.getElementById('dropIco').textContent='📂';
+  document.getElementById('dropTitle').textContent='Déposez vos fichiers BP ici';
+  document.getElementById('dropHint').textContent="1 fichier avec 2 onglets — ou 2 fichiers simultanément — ou l'un après l'autre · .xlsx accepté";
+  document.getElementById('app').style.display='none';showErr(null);
+}
+function setDropDone(){document.getElementById('dropZone').classList.add('done');document.getElementById('dropIco').textContent='✅';document.getElementById('dropTitle').textContent=`${dAv.label}  →  ${dAp.label}`;document.getElementById('dropHint').textContent='Analyse chargée — cliquez sur ↩ Nouveau pour recommencer';}
+function showErr(m){const el=document.getElementById('errBox');if(m){el.textContent=m;el.style.display='block';}else el.style.display='none';}
+function commonYears(){if(!dAv||!dAp)return[];return dAv.years.filter(y=>dAp.years.includes(y));}
+
+/* ════ AFFICHAGE ════ */
+function fmtN(v,d=2){if(!isFinite(v))return'—';return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v);}
+function fmtE(v){if(!isFinite(v))return'—';return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
+function sign(v){return v>=0?'+':'';}
+function ecCls(v){return v>=0?'pos-t':'neg-t';}
+function sumC(rows,k){return rows.reduce((s,r)=>s+(isFinite(r[k])?r[k]:0),0);}
+function ctxLine(label,tAp,tAv,isSurf){const ec=tAp-tAv,fmt=isSurf?v=>fmtN(v,0)+' m²':fmtE;return`Écart total ${label} : <strong>${sign(ec)}${fmt(ec)}</strong> &nbsp;|&nbsp; BP Après : <strong>${fmt(tAp)}</strong> &nbsp;|&nbsp; BP Avant : <strong>${fmt(tAv)}</strong>`;}
+function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
+  const fv=isSurf?v=>fmtN(v,2)+' m²':fmtE;
+  let body=rows.map(r=>`<tr><td>${r.bail}</td><td class="r">${fv(r.ap)}</td><td class="r">${fv(r.av)}</td><td class="r"><span class="${ecCls(r.ec)}" style="font-weight:500">${sign(r.ec)}${fv(r.ec)}</span></td></tr>`).join('');
+  const tAp=sumC(rows,'ap'),tAv=sumC(rows,'av'),tEc=tAp-tAv;
+  body+=`<tr class="tr-tot"><td>${showDecomp?'TOTAL (EBE)':'TOTAL'}</td><td class="r">${fv(tAp)}</td><td class="r">${fv(tAv)}</td><td class="r"><span class="${ecCls(tEc)}" style="font-weight:500">${sign(tEc)}${fv(tEc)}</span></td></tr>`;
+  if(showDecomp&&decomp){body+=`<tr class="tr-decomp-head"><td colspan="3">Décomposition de l'écart EBE total (${sign(tEc)}${fmtE(tEc)}) :</td><td></td></tr>`;decomp.forEach(d=>{body+=`<tr class="tr-decomp"><td colspan="3" style="padding-left:16px">${d.label}</td><td class="r"><span class="${ecCls(d.val)}" style="font-weight:500">${sign(d.val)}${fmtE(d.val)}</span></td></tr>`;});}
+  return`<table><thead><tr><th>Locataire / bail</th><th class="r">${lAp}</th><th class="r">${lAv}</th><th class="r">Écart</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function renderApp(){
+  document.getElementById('app').style.display='block';
+  const cy=commonYears();
+  document.getElementById('infoBar').innerHTML=`<span><strong>Avant :</strong> ${dAv.scenario}</span><span><strong>Après :</strong> ${dAp.scenario}</span><span><strong>Années communes :</strong> ${cy.join(', ')}</span>`;
+  if(!selYear||!cy.includes(selYear))selYear=cy[0]||null;
+  document.getElementById('yearBtns').innerHTML=cy.map(y=>`<button class="year-btn${y===selYear?' active':''}" onclick="pickYear('${y}')">${y}</button>`).join(' ');
+  renderTab();
+}
+function pickYear(y){selYear=y;document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',b.textContent===y));renderTab();}
+function switchTab(t){curTab=t;document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['surfaces','loyer_brut','honoraires','loyer_net'][i]===t));renderTab();}
+function renderTab(){
+  if(!selYear)return;
+  const tc=document.getElementById('tabContent'),y=selYear;
+  const TABS={
+    surfaces:{type:'surface',title:`1. Analyse des écarts de surfaces — ${y}`,defn:"Surface occupée par locataire (en m²) — locataires avec écart uniquement",lAp:'Surface BP Après (m²)',lAv:'Surface BP Avant (m²)',isSurf:true,label:'surface occupée',decomp:false},
+    loyer_brut:{type:'loyerBrut',title:`2. Analyse des écarts de loyers bruts cash — ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement — locataires avec écart uniquement",lAp:'Loyer Brut BP Après (€)',lAv:'Loyer Brut BP Avant (€)',isSurf:false,label:'loyer brut cash',decomp:false},
+    honoraires:{type:'honoCom',title:`3. Analyse des écarts d'honoraires de commercialisation — ${y}`,defn:"Honoraires de commercialisation par locataire — locataires avec écart uniquement",lAp:'Honoraires BP Après (€)',lAv:'Honoraires BP Avant (€)',isSurf:false,label:'honoraires',decomp:false},
+    loyer_net:{type:'ebe',title:`4. Analyse des écarts de loyers nets cash (EBE) — ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges récup. + Charges",lAp:'Loyer Net BP Après (€)',lAv:'Loyer Net BP Avant (€)',isSurf:false,label:'EBE',decomp:true},
+  };
+  const cfg=TABS[curTab];
+  const rows=buildComp(cfg.type,y),tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y);
+  const decomp=cfg.decomp?[
+    {label:'  dont Loyer brut cash',val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
+    {label:'  dont Charges récupérables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
+    {label:'  dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
+    {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
+  ]:null;
+  tc.innerHTML=`<div class="card"><div class="ctx"><div>${cfg.title}</div><div>${cfg.defn}</div><div>${ctxLine(cfg.label,tAp,tAv,cfg.isSurf)}</div></div>${makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp)}</div>`;
+}
+
+/* ══════════════════════════════════════════════════
+   EXPORT XLSX — ZIP STORE + styles XML pré-compilé
+══════════════════════════════════════════════════ */
+
+/* CRC32 */
+function crc32(d){if(!crc32._t){crc32._t=new Uint32Array(256);for(let i=0;i<256;i++){let v=i;for(let j=0;j<8;j++)v=v&1?0xEDB88320^(v>>>1):v>>>1;crc32._t[i]=v;}}let c=0xFFFFFFFF;for(let i=0;i<d.length;i++)c=crc32._t[(c^d[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+
+/* ZIP STORE */
+function zipStore(files){
+  const enc=new TextEncoder();
+  const entries=[];
+  for(const[name,content]of Object.entries(files)){
+    const nb=enc.encode(name);
+    const data=content instanceof Uint8Array?content:enc.encode(String(content));
+    entries.push({nb,data,crc:crc32(data),size:data.length});
+  }
+  let total=0;for(const e of entries)total+=30+e.nb.length+e.size;
+  const cdOff=total;for(const e of entries)total+=46+e.nb.length;total+=22;
+  const buf=new Uint8Array(total);const dv=new DataView(buf.buffer);
+  let pos=0;const offsets=[];
+  function w16(v){dv.setUint16(pos,v,true);pos+=2;}
+  function w32(v){dv.setUint32(pos,v,true);pos+=4;}
+  function wb(b){buf.set(b,pos);pos+=b.length;}
+  for(const e of entries){
+    offsets.push(pos);
+    w32(0x04034b50);w16(20);w16(0);w16(0);w16(0);w16(0);
+    w32(e.crc);w32(e.size);w32(e.size);w16(e.nb.length);w16(0);
+    wb(e.nb);wb(e.data);
+  }
+  const cdStart=pos;
+  for(let i=0;i<entries.length;i++){
+    const e=entries[i];
+    w32(0x02014b50);w16(20);w16(20);w16(0);w16(0);w16(0);w16(0);
+    w32(e.crc);w32(e.size);w32(e.size);w16(e.nb.length);w16(0);w16(0);w16(0);w16(0);w32(0);w32(offsets[i]);
+    wb(e.nb);
+  }
+  w32(0x06054b50);w16(0);w16(0);w16(entries.length);w16(entries.length);w32(pos-cdStart);w32(cdStart);w16(0);
+  return buf;
+}
+
+/* XML helpers */
+function xe(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ─── Styles XML pré-compilé (issu d'openpyxl, validé) ─── */
+const STYLES_XML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="# ##0 &quot;&#8364;&quot;;-# ##0 &quot;&#8364;&quot;;&quot;-&quot;"/><numFmt numFmtId="165" formatCode="# ##0.00 &quot;m&#178;&quot;;-# ##0.00 &quot;m&#178;&quot;;&quot;-&quot;"/></numFmts><fonts count="12"><font><name val="Calibri"/><family val="2"/><sz val="11"/><scheme val="minor"/></font><font><b/><sz val="13"/><color rgb="00FFFFFF"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="006B7280"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="001E3A5F"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="00FFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="001F2937"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="00166534"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="00991B1B"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="0064748B"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="00FFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="001E293B"/><name val="Arial"/></font><font><i/><sz val="10"/><color rgb="0064748B"/><name val="Arial"/></font></fonts><fills count="12"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="001A1A2E"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00EEF4FF"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00DBEAFE"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="002D4E7C"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00FFFFFF"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00F8FAFC"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00DCFCE7"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00FEE2E2"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00F1F5F9"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="00E2E8F0"/></patternFill></fill></fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="00CBD5E1"/></left><right style="thin"><color rgb="00CBD5E1"/></right><top style="thin"><color rgb="00CBD5E1"/></top><bottom style="thin"><color rgb="00CBD5E1"/></bottom><diagonal/></border><border><left style="medium"><color rgb="0094A3B8"/></left><right style="medium"><color rgb="0094A3B8"/></right><top style="medium"><color rgb="0094A3B8"/></top><bottom style="medium"><color rgb="0094A3B8"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="22"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="5" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="165" fontId="5" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="5" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="5" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="165" fontId="5" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="5" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="165" fontId="6" fillId="8" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="6" fillId="8" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="165" fontId="7" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="7" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="165" fontId="8" fillId="10" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="164" fontId="8" fillId="10" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf><xf numFmtId="0" fontId="9" fillId="2" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="0" fontId="10" fillId="11" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="11" fontId="11" fillId="11" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0" hidden="0"/></cellStyles><tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
+
+/* Index des styles (correspondent exactement au STYLES_XML ci-dessus) */
+const S={
+  title:1, defn:2, summ:3, blank:4,
+  hL:5, hR:6,
+  dLo:7, dM2o:8, dEo:9,   // odd
+  dLe:10,dM2e:11,dEe:12,  // even
+  posM2:13,posE:14,
+  negM2:15,negE:16,
+  neuM2:17,neuE:18,
+  totL:19,
+  dhL:20, dcL:21,
+};
+
+/* Styles Total : fond navy pour valeurs, écart coloré */
+function sTotV(nf){return nf===165?20:nf===164?19:19;} // on réutilise totL avec numFmt adapté
+function sTotEc(v,isSurf){
+  const nf=isSurf?165:164;
+  if(Math.abs(v||0)<0.01)return S.neuM2; // neutre
+  return v>0?(isSurf?S.posM2:S.posE):(isSurf?S.negM2:S.negE);
+}
+function sEc(v,isSurf){
+  if(Math.abs(v||0)<0.01)return isSurf?S.neuM2:S.neuE;
+  return v>0?(isSurf?S.posM2:S.posE):(isSurf?S.negM2:S.negE);
+}
+
+/* Générateur de worksheet XML */
+function buildWsXml(sheetsList,sst){
+  // sst = shared string table (array, index par valeur)
+  const sstMap={};
+  function si(s){s=String(s??'');if(!(s in sstMap)){sstMap[s]=sst.length;sst.push(s);}return sstMap[s];}
+  function cs(col,ri,t,v,sid){
+    const cr=String.fromCharCode(65+col)+ri;
+    if(t==='s')return`<c r="${cr}" s="${sid}" t="s"><v>${si(v)}</v></c>`;
+    if(t==='n')return`<c r="${cr}" s="${sid}" t="n"><v>${isFinite(v)?v:0}</v></c>`;
+    return`<c r="${cr}" s="${sid}"/>`;
+  }
+  function mr(ri,ht,cells){
+    return`<row r="${ri}" ht="${ht}" customHeight="1">${cells.map(c=>cs(c[0],ri,c[1],c[2],c[3])).join('')}</row>`;
+  }
+  function mrow(ri,ht,txt,sid){
+    return`<row r="${ri}" ht="${ht}" customHeight="1"><c r="A${ri}" s="${sid}" t="s"><v>${si(txt)}</v></c><c r="B${ri}" s="${sid}"/><c r="C${ri}" s="${sid}"/><c r="D${ri}" s="${sid}"/></row>`;
+  }
+
+  const wsXmls=[];
+  for(const sheet of sheetsList){
+    const{year,sections}=sheet;
+    let xml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`;
+    xml+=`<sheetViews><sheetView workbookViewId="0"><pane ySplit="0" state="normal"/></sheetView></sheetViews>`;
+    xml+=`<sheetFormatPr defaultRowHeight="16"/>`;
+    xml+=`<cols><col min="1" max="1" width="46" customWidth="1"/><col min="2" max="3" width="22" customWidth="1"/><col min="4" max="4" width="20" customWidth="1"/></cols>`;
+    xml+=`<sheetData>`;
+    let R=1;
+    const merges=[];
+
+    for(let si2=0;si2<sections.length;si2++){
+      if(si2>0){
+        // 2 lignes vides entre sections
+        xml+=`<row r="${R}" ht="6" customHeight="1"><c r="A${R}" s="${S.blank}"/></row>`;R++;
+        xml+=`<row r="${R}" ht="6" customHeight="1"><c r="A${R}" s="${S.blank}"/></row>`;R++;
+      }
+      const sec=sections[si2];
+      const{title,defn,lAp,lAv,rows,tAp,tAv,tEc,decomp,isSurf}=sec;
+      const nf=isSurf?165:164;
+      const fv=v=>isSurf?Math.round(v*100)/100:Math.round(v);
+      const fStr=isSurf?v=>fmtN(v,0)+'\u00a0m\u00b2':fmtE;
+
+      // Titre
+      merges.push(`A${R}:D${R}`);
+      xml+=mrow(R,22,title,S.title);R++;
+      // Définition
+      merges.push(`A${R}:D${R}`);
+      xml+=mrow(R,14,defn,S.defn);R++;
+      // Résumé
+      merges.push(`A${R}:D${R}`);
+      xml+=mrow(R,18,`\u00c9cart\u00a0: ${sign(tEc)}${fStr(tEc)}   |   BP Apr\u00e8s\u00a0: ${fStr(tAp)}   |   BP Avant\u00a0: ${fStr(tAv)}`,S.summ);R++;
+      // Vide
+      merges.push(`A${R}:D${R}`);
+      xml+=`<row r="${R}" ht="4" customHeight="1"><c r="A${R}" s="${S.blank}"/><c r="B${R}" s="${S.blank}"/><c r="C${R}" s="${S.blank}"/><c r="D${R}" s="${S.blank}"/></row>`;R++;
+      // Headers
+      xml+=mr(R,18,[[0,'s','Locataire / bail',S.hL],[1,'s',lAp,S.hR],[2,'s',lAv,S.hR],[3,'s','\u00c9cart',S.hR]]);R++;
+      // Données
+      rows.forEach((row,idx)=>{
+        const odd=idx%2===0;
+        const sL=odd?S.dLo:S.dLe;
+        const sN=odd?(nf===165?S.dM2o:S.dEo):(nf===165?S.dM2e:S.dEe);
+        xml+=mr(R,16,[
+          [0,'s',row.bail,sL],
+          [1,'n',fv(row.ap),sN],[2,'n',fv(row.av),sN],
+          [3,'n',fv(row.ec),sEc(row.ec,isSurf)],
+        ]);R++;
+      });
+      // Total
+      const totLabel=decomp?'TOTAL (EBE)':'TOTAL';
+      // Pour le total on réutilise totL (navy) pour le label et les valeurs
+      // Et la couleur de l'écart
+      xml+=mr(R,18,[
+        [0,'s',totLabel,S.totL],
+        [1,'n',fv(tAp),S.totL],[2,'n',fv(tAv),S.totL],
+        [3,'n',fv(tEc),sTotEc(tEc,isSurf)],
+      ]);R++;
+      // Décomposition EBE
+      if(decomp){
+        xml+=`<row r="${R}" ht="4" customHeight="1"><c r="A${R}" s="${S.blank}"/></row>`;R++;
+        merges.push(`A${R}:D${R}`);
+        xml+=mrow(R,16,`D\u00e9composition de l\u2019\u00e9cart EBE total (${sign(tEc)}${fmtE(tEc)})\u00a0:`,S.dhL);R++;
+        decomp.forEach(d=>{
+          merges.push(`A${R}:C${R}`);
+          xml+=`<row r="${R}" ht="15" customHeight="1"><c r="A${R}" s="${S.dcL}" t="s"><v>${si(d.label.trim())}</v></c><c r="B${R}" s="${S.dcL}"/><c r="C${R}" s="${S.dcL}"/><c r="D${R}" s="${sEc(d.val,false)}" t="n"><v>${Math.round(d.val)}</v></c></row>`;R++;
+        });
+      }
+    }
+
+    xml+=`</sheetData>`;
+    if(merges.length) xml+=`<mergeCells count="${merges.length}">${merges.map(r=>`<mergeCell ref="${r}"/>`).join('')}</mergeCells>`;
+    xml+=`</worksheet>`;
+    wsXmls.push({year,xml});
+  }
+  return wsXmls;
+}
+
+/* ── Construction du xlsx complet ── */
+function buildXlsx(allYearsData){
+  const sst=[];
+  const wsXmls=buildWsXml(allYearsData.map(yb=>({year:yb.year,sections:yb.sheets})),sst);
+  const years=wsXmls.map(w=>w.year);
+
+  // sharedStrings
+  const ssXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sst.length}" uniqueCount="${sst.length}">${sst.map(s=>`<si><t xml:space="preserve">${xe(s)}</t></si>`).join('')}</sst>`;
+
+  // workbook
+  const wbXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${years.map((y,i)=>`<sheet name="${xe(String(y))}" sheetId="${i+1}" r:id="rId${i+2}"/>`).join('')}</sheets></workbook>`;
+
+  // workbook rels
+  let wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${years.length+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>`;
+  years.forEach((_,i)=>{wbRels+=`<Relationship Id="rId${i+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`;});
+  wbRels+=`</Relationships>`;
+
+  // root rels
+  const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+
+  // content types
+  let ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>`;
+  years.forEach((_,i)=>{ct+=`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;});
+  ct+=`<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>`;
+
+  // Assemblage ZIP
+  const zipFiles={
+    '[Content_Types].xml':ct,
+    '_rels/.rels':rootRels,
+    'xl/workbook.xml':wbXml,
+    'xl/_rels/workbook.xml.rels':wbRels,
+    'xl/styles.xml':STYLES_XML,
+    'xl/sharedStrings.xml':ssXml,
+  };
+  wsXmls.forEach((w,i)=>{zipFiles[`xl/worksheets/sheet${i+1}.xml`]=w.xml;});
+  return zipStore(zipFiles);
+}
+
+/* ════ EXPORT ════ */
+function exportExcel(){
+  if(!dAv||!dAp)return;
+  const btn=document.getElementById('exportBtn');
+  btn.textContent='⏳ Génération…';btn.disabled=true;
+  try{
+    const years=commonYears();
+    const CFGS=[
+      {isSurf:true, type:'surface',   lAp:'Surface BP Après (m²)',   lAv:'Surface BP Avant (m²)',  decomp:false,
+       makeTitle:y=>`1. Analyse des écarts de surfaces — ${y}`,
+       defn:"Surface occupée par locataire (en m²) — locataires avec écart uniquement"},
+      {isSurf:false,type:'loyerBrut', lAp:'Loyer Brut BP Après (€)', lAv:'Loyer Brut BP Avant (€)',decomp:false,
+       makeTitle:y=>`2. Analyse des écarts de loyers bruts cash — ${y}`,
+       defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement (Franchise + Palier)"},
+      {isSurf:false,type:'honoCom',   lAp:'Honoraires BP Après (€)', lAv:'Honoraires BP Avant (€)',decomp:false,
+       makeTitle:y=>`3. Analyse des écarts d'honoraires de commercialisation — ${y}`,
+       defn:"Honoraires de commercialisation par locataire — locataires avec écart uniquement"},
+      {isSurf:false,type:'ebe',       lAp:'Loyer Net BP Après (€)',  lAv:'Loyer Net BP Avant (€)', decomp:true,
+       makeTitle:y=>`4. Analyse des écarts de loyers nets cash (EBE) — ${y}`,
+       defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges récup. + Charges"},
+    ];
+
+    const allYearsData=years.map(y=>({
+      year:y,
+      sheets:CFGS.map(cfg=>{
+        const rows=buildComp(cfg.type,y);
+        const tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y),tEc=tAp-tAv;
+        const decomp=cfg.decomp?[
+          {label:'dont Loyer brut cash',               val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
+          {label:'dont Charges récupérables',          val:getTotal(dAp,'chargesR',y) -getTotal(dAv,'chargesR',y)},
+          {label:'dont Charges',                       val:getTotal(dAp,'charges',y)  -getTotal(dAv,'charges',y)},
+          {label:'dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y) -getTotal(dAv,'honoCom',y)},
+        ]:null;
+        return{...cfg,title:cfg.makeTitle(y),rows,tAp,tAv,tEc,decomp};
+      })
+    }));
+
+    const zip=buildXlsx(allYearsData);
+    const blob=new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`Analyse_Ecarts_${years[0]}_${years[years.length-1]}.xlsx`;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){showErr('Erreur export : '+e.message);console.error(e);}
+  finally{btn.textContent='⬇ Export Excel';btn.disabled=false;}
+}
+</script>
+</body>
+</html>

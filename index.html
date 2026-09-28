@@ -238,13 +238,14 @@ function buildComp(t,y){
 }
 
 /* ════ GESTION FICHIERS ════ */
-async function readWB(f){const ab=await f.arrayBuffer();return XLSX.read(new Uint8Array(ab),{type:'array'});}
+async function readWB(f){if(typeof XLSX==='undefined')throw new Error('SheetJS (XLSX) non chargé — vérifiez votre connexion internet');const ab=await f.arrayBuffer();return XLSX.read(new Uint8Array(ab),{type:'array'});}
 function trigFiles(){if(document.getElementById('dropZone').classList.contains('done'))return;const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xlsm,.xls';i.multiple=true;i.onchange=e=>{if(e.target.files.length)handleFiles([...e.target.files]);document.body.removeChild(i);};i.style.display='none';document.body.appendChild(i);i.click();}
-function onDrop(e){e.preventDefault();onDragLeave();const fs=[...e.dataTransfer.files].filter(f=>f.name.match(/\.(xlsx|xlsm|xls)$/i));if(fs.length)handleFiles(fs);}
+function onDrop(e){e.preventDefault();onDragLeave();console.log('onDrop déclenché, fichiers:',e.dataTransfer.files.length);const fs=[...e.dataTransfer.files].filter(f=>f.name.match(/\.(xlsx|xlsm|xls)$/i));console.log('fichiers xlsx filtrés:',fs.length);if(fs.length)handleFiles(fs);else showErr('Format non reconnu — déposez un fichier .xlsx');}
 function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag');}
 function onDragLeave(){document.getElementById('dropZone').classList.remove('drag');}
 
 async function handleFiles(files){
+  console.log('handleFiles appelé, nb fichiers:', files.length, files.map(f=>f.name));
   showErr(null);document.getElementById('ldg').style.display='block';
   try{
     if(files.length>=2){
@@ -273,7 +274,7 @@ async function handleFiles(files){
         else{dAv=pendingData;dAp=parseSheet(wb,bps[0],files[0].name);pendingData=null;document.getElementById('waitSecond').classList.remove('on');setDropDone();renderApp();}
       }else showErr('Aucun onglet BP valide détecté.');
     }
-  }catch(e){showErr('Erreur : '+e.message);}
+  }catch(e){console.error('handleFiles error:',e);showErr('Erreur : '+(e.message||String(e)));}
   finally{document.getElementById('ldg').style.display='none';}
 }
 function confirmSheets(){

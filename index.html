@@ -239,7 +239,7 @@ function buildComp(t,y){
 
 /* ════ GESTION FICHIERS ════ */
 async function readWB(f){const ab=await f.arrayBuffer();return XLSX.read(new Uint8Array(ab),{type:'array'});}
-function trigFiles(){const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xlsm,.xls';i.multiple=true;i.onchange=e=>{if(e.target.files.length)handleFiles([...e.target.files]);};i.click();}
+function trigFiles(){if(document.getElementById('dropZone').classList.contains('done'))return;const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xlsm,.xls';i.multiple=true;i.onchange=e=>{if(e.target.files.length)handleFiles([...e.target.files]);document.body.removeChild(i);};i.style.display='none';document.body.appendChild(i);i.click();}
 function onDrop(e){e.preventDefault();onDragLeave();const fs=[...e.dataTransfer.files].filter(f=>f.name.match(/\.(xlsx|xlsm|xls)$/i));if(fs.length)handleFiles(fs);}
 function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag');}
 function onDragLeave(){document.getElementById('dropZone').classList.remove('drag');}

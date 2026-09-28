@@ -193,7 +193,7 @@ function parseComp(wb,sn,label){
   const yc={};aoa[0].forEach((v,ci)=>{if(typeof v==='number'&&v>2000&&v<2050)yc[String(v)]=ci;});
   const years=Object.keys(yc).sort();
   const scenario=String(aoa[0][0]||label).replace(/Cashflows de l'immeuble:\s*/,'').split('|')[0].trim()||label;
-  function toNum(v){if(v===null||v===undefined)return 0;if(typeof v==='number')return v;return parseFloat(String(v).replace(/[\u2009\u00a0\s]/g,'').replace(',','.').replace(/[^\d.\-]/g,''))||0;}
+  function toNum(v){if(v===null||v===undefined)return 0;if(typeof v==='number')return v;const s=String(v).replace(/\u2009/g,'').replace(/\u00a0/g,'').replace(/\u202f/g,'').replace(/\u0020/g,'').replace(/\s/g,'').replace(',','.');const n=parseFloat(s.replace(/[^\d.\-]/g,''));return isFinite(n)?n:0;}
   function gv(p,b,y){const ci=yc[y];if(!ci)return 0;for(let i=1;i<aoa.length;i++){const r=aoa[i];if(r&&String(r[0]||'').trim()===p&&String(r[1]||'').trim()===b)return toNum(r[ci]);}return 0;}
   function gb(p){const s=new Set();for(let i=1;i<aoa.length;i++){const r=aoa[i];if(!r)continue;const pp=String(r[0]||'').trim(),bb=String(r[1]||'').trim();if(pp===p&&bb&&bb!=='Tous'&&bb!=='Total')s.add(bb);}return[...s];}
   function abp(y,ps){const m={};ps.forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;}

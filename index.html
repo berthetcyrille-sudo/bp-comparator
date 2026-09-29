@@ -469,6 +469,7 @@ function renderApp(){
   if(olData) infoHtml+=`<span class="ol-badge">\u1F4CB OL charg\u00E9 \u2014 explications disponibles</span>`;
   document.getElementById('infoBar').innerHTML=infoHtml;
   if(!selYear||!cy.includes(selYear))selYear=cy[0]||null;
+  setTimeout(buildGlobalSynth,200);
   document.getElementById('yearBtns').innerHTML=cy.map(y=>`<button class="year-btn${y===selYear?' active':''}" onclick="pickYear('${y}')">${y}</button>`).join(' ');
   renderTab();
 }
@@ -653,6 +654,122 @@ function buildXlsx(allYearsData){
   const zipFiles={'[Content_Types].xml':ct,'_rels/.rels':rootRels,'xl/workbook.xml':wbXml,'xl/_rels/workbook.xml.rels':wbRels,'xl/styles.xml':STYLES_XML,'xl/sharedStrings.xml':ssXml};
   wsXmls.forEach((w,i)=>{zipFiles[`xl/worksheets/sheet${i+1}.xml`]=w.xml;});
   return zipStore(zipFiles);
+}
+
+/* \u2550\u2550\u2550\u2550 SYNTHESE GLOBALE \u2550\u2550\u2550\u2550 */
+function closeSynth(){
+  var m=document.getElementById('synthModal');
+  m.style.display='none';
+}
+
+function buildGlobalSynth(){
+  var years=commonYears();
+  if(!years.length) return;
+
+  function fmt(v,isSurf){
+    if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+'\u00A0m\u00B2';
+    return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.abs(v));
+  }
+  function shortName(bail){ return bail.split('/')[0].trim(); }
+  function sign(v){ return v>=0?'+':''; }
+
+  var POSTES=[
+    {type:'loyerBrut', isSurf:false, label:'loyer brut cash'},
+    {type:'surface',   isSurf:true,  label:'surface occup\u00E9e'},
+    {type:'honoCom',   isSurf:false, label:'honoraires de commercialisation'},
+    {type:'ebe',       isSurf:false, label:'loyer net (EBE)'},
+  ];
+
+  // Pour chaque locataire (nom court), calculer son impact cumul\u00E9 sur toutes ann\u00E9es + postes loyer brut
+  var bailImpact={};
+  years.forEach(function(y){
+    var rows=buildComp('loyerBrut',y);
+    rows.forEach(function(r){
+      var k=shortName(r.bail);
+      if(!bailImpact[k]) bailImpact[k]={name:k,ecByYear:{},totalEc:0,yearsAffected:[]};
+      bailImpact[k].ecByYear[y]=(bailImpact[k].ecByYear[y]||0)+r.ec;
+      bailImpact[k].totalEc+=r.ec;
+      if(bailImpact[k].yearsAffected.indexOf(y)<0) bailImpact[k].yearsAffected.push(y);
+    });
+  });
+
+  // Trier par impact absolu total
+  var sorted=Object.values(bailImpact)
+    .filter(function(b){return Math.abs(b.totalEc)>0.01;})
+    .sort(function(a,b){return Math.abs(b.totalEc)-Math.abs(a.totalEc);});
+
+  // Totaux globaux par poste
+  var totByPoste={};
+  POSTES.forEach(function(p){
+    var total=0;
+    years.forEach(function(y){
+      total+=getTotal(dAp,p.type,y)-getTotal(dAv,p.type,y);
+    });
+    totByPoste[p.type]=total;
+  });
+
+  // Construire les paragraphes
+  var paras=[];
+
+  // \u00A7 1 : Vue d'ensemble loyer brut
+  var totalLB=totByPoste['loyerBrut'];
+  var totalEBE=totByPoste['ebe'];
+  var yr1=years[0], yrN=years[years.length-1];
+  var periode=yr1===yrN?'en '+yr1:'sur la p\u00E9riode '+yr1+'\u2013'+yrN;
+  var dirLB=totalLB>=0?'progresse':'recule';
+  var dirEBE=totalEBE>=0?'positif':'n\u00E9gatif';
+  paras.push('<strong>Vue d\u2019ensemble.</strong> '+periode.charAt(0).toUpperCase()+periode.slice(1)+
+    ', le loyer brut cash cumul\u00E9 '+dirLB+' de <strong>'+fmt(Math.abs(totalLB),false)+'</strong>'+
+    ', avec un impact EBE global <strong>'+fmt(Math.abs(totalEBE),false)+'</strong>'+
+    (totalEBE>=0?' positif':' n\u00E9gatif')+'.');
+
+  // \u00A7 2 : Principaux baux impactants
+  if(sorted.length>0){
+    var top=sorted.slice(0,4);
+    var totalAbsLB=sorted.reduce(function(s,b){return s+Math.abs(b.totalEc);},0);
+    var cumul=top.reduce(function(s,b){return s+Math.abs(b.totalEc);},0);
+    var pct=Math.round(cumul/totalAbsLB*100);
+
+    var bailDescriptions=top.map(function(b){
+      var annees=b.yearsAffected.sort();
+      var periode2=annees.length===1?'en '+annees[0]:
+        annees.length===years.length?'sur toute la p\u00E9riode':
+        'de '+annees[0]+' \u00E0 '+annees[annees.length-1];
+      return '<strong>'+b.name+'</strong> ('+sign(b.totalEc)+fmt(b.totalEc,false)+' '+periode2+')';
+    });
+
+    var liste=bailDescriptions.length===1?bailDescriptions[0]:
+      bailDescriptions.slice(0,-1).join(', ')+' et '+bailDescriptions[bailDescriptions.length-1];
+
+    paras.push('<strong>Principaux baux.</strong> '+pct+'% de l\u2019\u00E9cart de loyer brut est port\u00E9 par '+liste+'.');
+  }
+
+  // \u00A7 3 : Ann\u00E9es les plus impact\u00E9es
+  var ecByYear=years.map(function(y){
+    return{year:y,ec:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)};
+  }).sort(function(a,b){return Math.abs(b.ec)-Math.abs(a.ec);});
+
+  if(ecByYear.length>1){
+    var top2=ecByYear.slice(0,2);
+    var yrDesc=top2.map(function(e){
+      return e.year+' ('+sign(e.ec)+fmt(e.ec,false)+')';
+    }).join(' et ');
+    paras.push('<strong>Ann\u00E9es cl\u00E9s.</strong> Les \u00E9carts les plus significatifs se concentrent en '+yrDesc+'.');
+  }
+
+  // \u00A7 4 : Surface si \u00E9cart notable
+  var totalSurf=totByPoste['surface'];
+  if(Math.abs(totalSurf)>10){
+    var dirS=totalSurf>0?'hausse':'baisse';
+    paras.push('<strong>Surfaces.</strong> La surface occup\u00E9e est en '+dirS+' de <strong>'+fmt(Math.abs(totalSurf),true)+'</strong> sur la p\u00E9riode.');
+  }
+
+  // Afficher
+  document.getElementById('synthSubtitle').textContent=
+    'BP Avant\u00A0: '+dAv.scenario+' \u2192 BP Apr\u00E8s\u00A0: '+dAp.scenario;
+  document.getElementById('synthBody').innerHTML=
+    paras.map(function(p){return '<p style="margin-bottom:12px">'+p+'</p>';}).join('');
+  document.getElementById('synthModal').style.display='flex';
 }
 
 function exportExcel(){

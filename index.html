@@ -62,6 +62,29 @@ tr:last-child td{border-bottom:none;}.tr-tot td{font-weight:600;background:var(-
     <p class="drop-title" id="dropTitle">Déposez vos fichiers BP ici</p>
     <p class="drop-hint" id="dropHint">1 fichier combiné (avec OL) — ou 2 fichiers BP séparés · .xlsx accepté</p>
   </div>
+
+  <details style="background:var(--bg);border:.5px solid var(--brd);border-radius:var(--rl);margin-bottom:1rem;overflow:hidden;">
+    <summary style="padding:.9rem 1.25rem;font-size:13px;font-weight:500;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:15px;">📖</span> Comment préparer le fichier Excel depuis SONEKA ?
+    </summary>
+    <div style="padding:0 1.25rem 1.25rem;border-top:.5px solid var(--brd);">
+      <ol style="font-size:13px;color:var(--text2);line-height:2;padding-left:1.25rem;margin-top:.9rem;">
+        <li>Ouvrir SONEKA.</li>
+        <li>Accéder à l&apos;immeuble concerné par l&apos;analyse comparative.</li>
+        <li>Aller dans le business plan Master en cliquant sur le bouton <strong style="color:var(--text)">€ Cashflows</strong> en haut à droite.</li>
+        <li>Afficher le détail par bail en cliquant sur <strong style="color:var(--text)">Tout développer</strong> — le petit <strong style="color:var(--text)">+</strong> en haut à gauche du tableau.</li>
+        <li>Copier le tableau en cliquant sur le pictogramme <strong style="color:var(--text)">bloc-note</strong> (bouton Copier, au-dessus du +).</li>
+        <li>Ouvrir un fichier Excel vierge et coller le contenu dans un onglet.</li>
+        <li>Nommer cet onglet <strong style="color:var(--text)">Après</strong>.</li>
+        <li>Retourner à la page d&apos;accueil de l&apos;actif dans SONEKA.</li>
+        <li>Cliquer sur <strong style="color:var(--text)">Master</strong> puis <strong style="color:var(--text)">Snapshot</strong> et choisir le snapshot à comparer.</li>
+        <li>Répéter les étapes 3 à 5 pour récupérer le cashflow du Snapshot (<strong style="color:var(--text)">€ Cashflows</strong> → <strong style="color:var(--text)">+</strong> → <strong style="color:var(--text)">Tout développer</strong> → <strong style="color:var(--text)">Copier</strong>).</li>
+        <li>Coller dans un nouvel onglet du même fichier Excel et le nommer <strong style="color:var(--text)">Avant</strong>.</li>
+        <li>Sauvegarder le fichier.</li>
+        <li style="list-style:none;margin-top:.5rem;padding:.6rem .9rem;background:var(--ok-bg);border-radius:var(--r);color:var(--ok);font-weight:500;">✅ Ce fichier est prêt à être déposé dans la zone ci-dessus.</li>
+      </ol>
+    </div>
+  </details>
   <div class="state-box" id="waitSecond">
     <p class="state-title">✅ Premier fichier chargé — déposez le deuxième</p>
     <div class="file-badge" id="firstFileBadge"></div>

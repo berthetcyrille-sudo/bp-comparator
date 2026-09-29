@@ -97,24 +97,24 @@ tr:last-child td{border-bottom:none;}.tr-tot td{font-weight:600;background:var(-
   </div>
 </div>
 <script>
-/* ════ ÉTAT ════ */
+/* \u2550\u2550\u2550\u2550 \u00C9TAT \u2550\u2550\u2550\u2550 */
 let dAv=null,dAp=null,olData=null,selYear=null,curTab='surfaces',pendingWb=null,pendingData=null;
 
-/* ════ DÉTECTION FORMAT ════ */
-function isCFSheet(wb,n){try{const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:null,range:0});if(!r.length)return false;const k=Object.keys(r[0]);return k.includes('Date de référence')&&k.includes('Montant')&&k.includes('Compte');}catch(e){return false;}}
+/* \u2550\u2550\u2550\u2550 D\u00C9TECTION FORMAT \u2550\u2550\u2550\u2550 */
+function isCFSheet(wb,n){try{const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:null,range:0});if(!r.length)return false;const k=Object.keys(r[0]);return k.includes('Date de r\u00E9f\u00E9rence')&&k.includes('Montant')&&k.includes('Compte');}catch(e){return false;}}
 function isComp(wb,n){try{const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:null});if(!a.length)return false;return String(a[0][0]||'').includes('Cashflows')||a[0].slice(2).some(v=>typeof v==='number'&&v>2000&&v<2050);}catch(e){return false;}}
-function isOL(wb,n){try{const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:null,range:0});if(!r.length)return false;const k=Object.keys(r[0]);return k.includes('Master ou Type de scénario')&&k.includes('Nom bu bail')&&k.includes('Loyer de base du lot');}catch(e){return false;}}
+function isOL(wb,n){try{const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:null,range:0});if(!r.length)return false;const k=Object.keys(r[0]);return k.includes('Master ou Type de sc\u00E9nario')&&k.includes('Nom bu bail')&&k.includes('Loyer de base du lot');}catch(e){return false;}}
 function detectFmt(wb,n){if(isCFSheet(wb,n))return'cf';if(isComp(wb,n))return'comp';return null;}
 function isBP(wb,n){return!!detectFmt(wb,n);}
 
-/* ════ PARSER OL ════ */
+/* \u2550\u2550\u2550\u2550 PARSER OL \u2550\u2550\u2550\u2550 */
 function parseOL(wb,sheetName){
   const raw=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{defval:null});
   if(!raw.length) return null;
   // Index par scenario -> bail -> rows
   const snap={}, master={};
   raw.forEach(r=>{
-    const sc=r['Master ou Type de scénario'];
+    const sc=r['Master ou Type de sc\u00E9nario'];
     const bail=String(r['Nom bu bail']||'').trim();
     if(!bail) return;
     if(sc==='snapshot'){
@@ -125,7 +125,7 @@ function parseOL(wb,sheetName){
       master[bail].push(r);
     }
   });
-  // Index par lot -> snapshot rows (pour retrouver bail avant d'un bail après)
+  // Index par lot -> snapshot rows (pour retrouver bail avant d'un bail apr\u00E8s)
   const snapByLot={};
   Object.values(snap).flat().forEach(r=>{
     const lot=String(r['Nom du lot']||'').trim();
@@ -134,57 +134,57 @@ function parseOL(wb,sheetName){
   return{snap,master,snapByLot};
 }
 
-/* Pour un bail (après), retrouver l'explication depuis OL */
+/* Pour un bail (apr\u00E8s), retrouver l'explication depuis OL */
 function getOLExplanation(bailAp){
   if(!olData) return null;
   const {master,snapByLot}=olData;
   const mRows=master[bailAp];
-  if(!mRows||!mRows.length) return{type:'Nouveau bail',bailAv:'—',loyerAv:null,loyerAp:null,finAv:null,finAp:null,statut:null,desc:null};
-  // Agréger loyer par bail master
+  if(!mRows||!mRows.length) return{type:'Nouveau bail',bailAv:'\u2014',loyerAv:null,loyerAp:null,finAv:null,finAp:null,statut:null,desc:null};
+  // Agr\u00E9ger loyer par bail master
   const loyerAp=mRows.reduce((s,r)=>s+(Number(r['Loyer de base du lot'])||0),0);
   const finAp=mRows[0]['Fin du bail'];
-  const debutAp=mRows[0]['Début bu bail'];
-  const statut=mRows[0]['Baux Signés/Prospects'];
+  const debutAp=mRows[0]['D\u00E9but bu bail'];
+  const statut=mRows[0]['Baux Sign\u00E9s/Prospects'];
   const desc=mRows[0]['Description du bail']||mRows[0]['Commentaire Asset']||null;
   // Retrouver snapshot via lots communs
   const lots=new Set(mRows.map(r=>String(r['Nom du lot']||'').trim()).filter(Boolean));
   const sRows=[];
   lots.forEach(lot=>{if(snapByLot[lot])sRows.push(...snapByLot[lot]);});
   if(!sRows.length){
-    return{type:'Nouveau bail',bailAv:'—',loyerAv:0,loyerAp:Math.round(loyerAp),finAv:null,finAp:fmtDate(finAp),statut,desc};
+    return{type:'Nouveau bail',bailAv:'\u2014',loyerAv:0,loyerAp:Math.round(loyerAp),finAv:null,finAp:fmtDate(finAp),statut,desc};
   }
   const bailAv=sRows[0]['Nom bu bail']||'';
   const loyerAv=sRows.reduce((s,r)=>s+(Number(r['Loyer de base du lot'])||0),0);
   const finAv=sRows[0]['Fin du bail'];
   // Type de changement
-  let type='Inchangé';
+  let type='Inchang\u00E9';
   const loyerDiff=Math.abs(loyerAp-loyerAv);
   const renamed=bailAv!==bailAp;
   const dateChanged=fmtDate(finAv)!==fmtDate(finAp);
-  if(renamed&&loyerDiff>100) type='Renommage + Δ loyer';
+  if(renamed&&loyerDiff>100) type='Renommage + \u0394 loyer';
   else if(renamed) type='Renommage';
-  else if(loyerDiff>100&&dateChanged) type='Δ loyer + Δ date fin';
-  else if(loyerDiff>100) type='Δ loyer';
-  else if(dateChanged) type='Δ date fin';
-  return{type,bailAv:bailAv||'—',loyerAv:Math.round(loyerAv),loyerAp:Math.round(loyerAp),finAv:fmtDate(finAv),finAp:fmtDate(finAp),statut,desc};
+  else if(loyerDiff>100&&dateChanged) type='\u0394 loyer + \u0394 date fin';
+  else if(loyerDiff>100) type='\u0394 loyer';
+  else if(dateChanged) type='\u0394 date fin';
+  return{type,bailAv:bailAv||'\u2014',loyerAv:Math.round(loyerAv),loyerAp:Math.round(loyerAp),finAv:fmtDate(finAv),finAp:fmtDate(finAp),statut,desc};
 }
 
-function fmtDate(d){if(!d)return'—';if(d instanceof Date||typeof d==='object')return d.toISOString?d.toISOString().slice(0,7):String(d).slice(0,7);return String(d).slice(0,7);}
+function fmtDate(d){if(!d)return'\u2014';if(d instanceof Date||typeof d==='object')return d.toISOString?d.toISOString().slice(0,7):String(d).slice(0,7);return String(d).slice(0,7);}
 
 function tagHTML(type){
-  const map={'Nouveau bail':'tag-new','Bail sorti':'tag-out','Renommage':'tag-ren','Renommage + Δ loyer':'tag-ren','Δ loyer':'tag-chg','Δ date fin':'tag-chg','Δ loyer + Δ date fin':'tag-chg','Inchangé':'tag-ok'};
+  const map={'Nouveau bail':'tag-new','Bail sorti':'tag-out','Renommage':'tag-ren','Renommage + \u0394 loyer':'tag-ren','\u0394 loyer':'tag-chg','\u0394 date fin':'tag-chg','\u0394 loyer + \u0394 date fin':'tag-chg','Inchang\u00E9':'tag-ok'};
   return`<span class="tag ${map[type]||'tag-ok'}">${type}</span>`;
 }
 
-/* ════ PARSERS BP ════ */
+/* \u2550\u2550\u2550\u2550 PARSERS BP \u2550\u2550\u2550\u2550 */
 function parseCF(wb,sn,label){
   const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:null});
   if(!raw.length)throw new Error(`Onglet "${sn}" vide.`);
-  const sk=Object.keys(raw[0]).find(k=>k==='Scénario');
+  const sk=Object.keys(raw[0]).find(k=>k==='Sc\u00E9nario');
   const scenario=sk?(raw[0][sk]||label):label;
-  const years=[...new Set(raw.map(r=>String(r['Date de référence']||'').slice(0,4)).filter(y=>y&&y!=='null'))].sort();
-  function aggBail(year,fn){const m={};raw.forEach(r=>{if(String(r['Date de référence']||'').slice(0,4)!==year||!fn(r))return;const b=r['Nom du bail']||'?';if(b==='Tous')return;m[b]=(m[b]||0)+(Number(r['Montant'])||0);});return m;}
-  function aggTotal(year,fn){let t=0;raw.forEach(r=>{if(String(r['Date de référence']||'').slice(0,4)===year&&fn(r))t+=Number(r['Montant'])||0;});return t;}
+  const years=[...new Set(raw.map(r=>String(r['Date de r\u00E9f\u00E9rence']||'').slice(0,4)).filter(y=>y&&y!=='null'))].sort();
+  function aggBail(year,fn){const m={};raw.forEach(r=>{if(String(r['Date de r\u00E9f\u00E9rence']||'').slice(0,4)!==year||!fn(r))return;const b=r['Nom du bail']||'?';if(b==='Tous')return;m[b]=(m[b]||0)+(Number(r['Montant'])||0);});return m;}
+  function aggTotal(year,fn){let t=0;raw.forEach(r=>{if(String(r['Date de r\u00E9f\u00E9rence']||'').slice(0,4)===year&&fn(r))t+=Number(r['Montant'])||0;});return t;}
   return{scenario,years,label,format:'cf',aggBail,aggTotal};
 }
 function parseComp(wb,sn,label){
@@ -199,11 +199,11 @@ function parseComp(wb,sn,label){
   function abp(y,ps){const m={};ps.forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;}
   function atp(y,p){return gv(p,'Tous',y)||gv(p,'Total',y)||0;}
   return{scenario,years,label,format:'comp',
-    aggBailSurface:y=>abp(y,['Surface occupée']),
+    aggBailSurface:y=>abp(y,['Surface occup\u00E9e']),
     aggBailLoyerBrut:y=>{const m={};['Loyer','Franchise','Palier','Participation aux travaux preneurs'].forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;},
     aggBailHonoCom:y=>abp(y,['Honoraires de commercialisation']),
     aggBailEBE:y=>{const m={};const lb=abp(y,['Loyer','Franchise','Palier','Participation aux travaux preneurs']);const hc=abp(y,['Honoraires de commercialisation']);Object.entries(lb).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});Object.entries(hc).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});return m;},
-    aggTotalSurface:y=>atp(y,'Surface occupée'),
+    aggTotalSurface:y=>atp(y,'Surface occup\u00E9e'),
     aggTotalLoyerBrut:y=>atp(y,"Revenus Locatifs")+atp(y,"Mesures d'accompagnement"),
     aggTotalHonoCom:y=>atp(y,'Honoraires de commercialisation'),
     aggTotalChargesR:y=>atp(y,'Charges Recup.'),
@@ -213,14 +213,14 @@ function parseComp(wb,sn,label){
 }
 function parseSheet(wb,sn,label){const f=detectFmt(wb,sn);if(f==='cf')return parseCF(wb,sn,label);if(f==='comp')return parseComp(wb,sn,label);throw new Error(`Format non reconnu : "${sn}".`);}
 
-/* ════ AGRÉGATION COMMUNE ════ */
+/* \u2550\u2550\u2550\u2550 AGR\u00C9GATION COMMUNE \u2550\u2550\u2550\u2550 */
 const CF={
-  surface:r=>r['Sous-catégorie']==='Surface'&&r['Compte']===1,
-  loyerBrut:r=>{const c=r['Compte'],cat=r['Catégorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement");},
-  honoCom:r=>r['Sous-catégorie']==='Honoraires de commercialisation'&&r['Compte']===8503,
-  chargesR:r=>r['Compte']===5200&&r['Catégorie']==='Charges Recup',
-  charges:r=>r['Compte']===6000&&r['Catégorie']==='Charges',
-  ebe:r=>{const c=r['Compte'],cat=r['Catégorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement")||(r['Sous-catégorie']==='Honoraires de commercialisation'&&c===8503)||(c===5200&&cat==='Charges Recup')||(c===6000&&cat==='Charges');}
+  surface:r=>r['Sous-cat\u00E9gorie']==='Surface'&&r['Compte']===1,
+  loyerBrut:r=>{const c=r['Compte'],cat=r['Cat\u00E9gorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement");},
+  honoCom:r=>r['Sous-cat\u00E9gorie']==='Honoraires de commercialisation'&&r['Compte']===8503,
+  chargesR:r=>r['Compte']===5200&&r['Cat\u00E9gorie']==='Charges Recup',
+  charges:r=>r['Compte']===6000&&r['Cat\u00E9gorie']==='Charges',
+  ebe:r=>{const c=r['Compte'],cat=r['Cat\u00E9gorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement")||(r['Sous-cat\u00E9gorie']==='Honoraires de commercialisation'&&c===8503)||(c===5200&&cat==='Charges Recup')||(c===6000&&cat==='Charges');}
 };
 function getAggBail(d,t,y){
   if(d.format==='comp'){if(t==='surface')return d.aggBailSurface(y);if(t==='loyerBrut')return d.aggBailLoyerBrut(y);if(t==='honoCom')return d.aggBailHonoCom(y);if(t==='ebe')return d.aggBailEBE(y);}
@@ -237,15 +237,15 @@ function buildComp(t,y){
     .filter(r=>Math.abs(r.ec)>0.01);
 }
 
-/* ════ GESTION FICHIERS ════ */
-async function readWB(f){if(typeof XLSX==='undefined')throw new Error('SheetJS (XLSX) non chargé — vérifiez votre connexion internet');const ab=await f.arrayBuffer();return XLSX.read(new Uint8Array(ab),{type:'array'});}
+/* \u2550\u2550\u2550\u2550 GESTION FICHIERS \u2550\u2550\u2550\u2550 */
+async function readWB(f){if(typeof XLSX==='undefined')throw new Error('SheetJS (XLSX) non charg\u00E9 \u2014 v\u00E9rifiez votre connexion internet');const ab=await f.arrayBuffer();return XLSX.read(new Uint8Array(ab),{type:'array'});}
 function trigFiles(){if(document.getElementById('dropZone').classList.contains('done'))return;const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xlsm,.xls';i.multiple=true;i.onchange=e=>{if(e.target.files.length)handleFiles([...e.target.files]);document.body.removeChild(i);};i.style.display='none';document.body.appendChild(i);i.click();}
-function onDrop(e){e.preventDefault();onDragLeave();console.log('onDrop déclenché, fichiers:',e.dataTransfer.files.length);const fs=[...e.dataTransfer.files].filter(f=>f.name.match(/\.(xlsx|xlsm|xls)$/i));console.log('fichiers xlsx filtrés:',fs.length);if(fs.length)handleFiles(fs);else showErr('Format non reconnu — déposez un fichier .xlsx');}
+function onDrop(e){e.preventDefault();onDragLeave();console.log('onDrop d\u00E9clench\u00E9, fichiers:',e.dataTransfer.files.length);const fs=[...e.dataTransfer.files].filter(f=>f.name.match(/\.(xlsx|xlsm|xls)$/i));console.log('fichiers xlsx filtr\u00E9s:',fs.length);if(fs.length)handleFiles(fs);else showErr('Format non reconnu \u2014 d\u00E9posez un fichier .xlsx');}
 function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag');}
 function onDragLeave(){document.getElementById('dropZone').classList.remove('drag');}
 
 async function handleFiles(files){
-  console.log('handleFiles appelé, nb fichiers:', files.length, files.map(f=>f.name));
+  console.log('handleFiles appel\u00E9, nb fichiers:', files.length, files.map(f=>f.name));
   showErr(null);document.getElementById('ldg').style.display='block';
   try{
     if(files.length>=2){
@@ -270,16 +270,16 @@ async function handleFiles(files){
         ['selAv','selAp'].forEach((id,i)=>{document.getElementById(id).innerHTML=bps.map((s,j)=>`<option value="${s}"${j===i?'selected':''}>${s}</option>`).join('');});
         document.getElementById('sheetPicker').classList.add('on');
       }else if(bps.length===1){
-        if(!pendingData){pendingData=parseSheet(wb,bps[0],files[0].name);document.getElementById('firstFileBadge').textContent='📄 '+files[0].name;document.getElementById('waitSecond').classList.add('on');document.getElementById('dropHint').textContent='Déposez le deuxième fichier BP ici';}
+        if(!pendingData){pendingData=parseSheet(wb,bps[0],files[0].name);document.getElementById('firstFileBadge').textContent='\u1F4C4 '+files[0].name;document.getElementById('waitSecond').classList.add('on');document.getElementById('dropHint').textContent='D\u00E9posez le deuxi\u00E8me fichier BP ici';}
         else{dAv=pendingData;dAp=parseSheet(wb,bps[0],files[0].name);pendingData=null;document.getElementById('waitSecond').classList.remove('on');setDropDone();renderApp();}
-      }else showErr('Aucun onglet BP valide détecté.');
+      }else showErr('Aucun onglet BP valide d\u00E9tect\u00E9.');
     }
   }catch(e){console.error('handleFiles error:',e);showErr('Erreur : '+(e.message||String(e)));}
   finally{document.getElementById('ldg').style.display='none';}
 }
 function confirmSheets(){
   const av=document.getElementById('selAv').value,ap=document.getElementById('selAp').value;
-  if(av===ap){showErr('Sélectionnez deux onglets différents.');return;}
+  if(av===ap){showErr('S\u00E9lectionnez deux onglets diff\u00E9rents.');return;}
   showErr(null);
   try{dAv=parseSheet(pendingWb,av,av);dAp=parseSheet(pendingWb,ap,ap);pendingWb=null;document.getElementById('sheetPicker').classList.remove('on');setDropDone();renderApp();}
   catch(e){showErr('Erreur : '+e.message);}
@@ -288,45 +288,45 @@ function resetAll(){
   dAv=null;dAp=null;olData=null;selYear=null;curTab='surfaces';pendingWb=null;pendingData=null;
   ['sheetPicker','waitSecond'].forEach(id=>document.getElementById(id).classList.remove('on'));
   const dz=document.getElementById('dropZone');dz.classList.remove('done','drag');
-  document.getElementById('dropIco').textContent='📂';
-  document.getElementById('dropTitle').textContent='Déposez vos fichiers BP ici';
-  document.getElementById('dropHint').textContent="1 fichier combiné (avec OL) — ou 2 fichiers BP séparés · .xlsx accepté";
+  document.getElementById('dropIco').textContent='\u1F4C2';
+  document.getElementById('dropTitle').textContent='D\u00E9posez vos fichiers BP ici';
+  document.getElementById('dropHint').textContent="1 fichier combin\u00E9 (avec OL) \u2014 ou 2 fichiers BP s\u00E9par\u00E9s \u00B7 .xlsx accept\u00E9";
   document.getElementById('app').style.display='none';showErr(null);
 }
 function setDropDone(){
   document.getElementById('dropZone').classList.add('done');
-  document.getElementById('dropIco').textContent='✅';
-  document.getElementById('dropTitle').textContent=`${dAv.label}  →  ${dAp.label}`;
+  document.getElementById('dropIco').textContent='\u2705';
+  document.getElementById('dropTitle').textContent=`${dAv.label}  \u2192  ${dAp.label}`;
   document.getElementById("dropHint").textContent=olData?"OL detecte - explications disponibles":"Pas d OL - deposez un fichier avec onglet OL pour les explications";
 }
 function showErr(m){const el=document.getElementById('errBox');if(m){el.textContent=m;el.style.display='block';}else el.style.display='none';}
 function commonYears(){if(!dAv||!dAp)return[];return dAv.years.filter(y=>dAp.years.includes(y));}
 
-/* ════ AFFICHAGE ════ */
-function fmtN(v,d=2){if(!isFinite(v))return'—';return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v);}
-function fmtE(v){if(!isFinite(v))return'—';return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
+/* \u2550\u2550\u2550\u2550 AFFICHAGE \u2550\u2550\u2550\u2550 */
+function fmtN(v,d=2){if(!isFinite(v))return'\u2014';return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v);}
+function fmtE(v){if(!isFinite(v))return'\u2014';return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);}
 function sign(v){return v>=0?'+':'';}
 function ecCls(v){return v>=0?'pos-t':'neg-t';}
 function sumC(rows,k){return rows.reduce((s,r)=>s+(isFinite(r[k])?r[k]:0),0);}
-function ctxLine(label,tAp,tAv,isSurf){const ec=tAp-tAv,fmt=isSurf?v=>fmtN(v,0)+' m²':fmtE;return`Écart total ${label} : <strong>${sign(ec)}${fmt(ec)}</strong> &nbsp;|&nbsp; BP Après : <strong>${fmt(tAp)}</strong> &nbsp;|&nbsp; BP Avant : <strong>${fmt(tAv)}</strong>`;}
+function ctxLine(label,tAp,tAv,isSurf){const ec=tAp-tAv,fmt=isSurf?v=>fmtN(v,0)+' m\u00B2':fmtE;return`\u00C9cart total ${label} : <strong>${sign(ec)}${fmt(ec)}</strong> &nbsp;|&nbsp; BP Apr\u00E8s : <strong>${fmt(tAp)}</strong> &nbsp;|&nbsp; BP Avant : <strong>${fmt(tAv)}</strong>`;}
 
 function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
-  const fv=isSurf?v=>fmtN(v,2)+' m²':fmtE;
+  const fv=isSurf?v=>fmtN(v,2)+' m\u00B2':fmtE;
   const hasOL=!!olData;
 
-  // En-têtes
+  // En-t\u00EAtes
   let head=`<tr>
     <th>Locataire / bail</th>
     <th class="r">${lAp}</th>
     <th class="r">${lAv}</th>
-    <th class="r">Écart</th>`;
+    <th class="r">\u00C9cart</th>`;
   if(hasOL){
     head+=`<th class="exp">Type de changement</th>
     <th class="exp">Bail avant</th>
     <th class="exp r">Loyer base avant</th>
-    <th class="exp r">Loyer base après</th>
+    <th class="exp r">Loyer base apr\u00E8s</th>
     <th class="exp">Fin avant</th>
-    <th class="exp">Fin après</th>
+    <th class="exp">Fin apr\u00E8s</th>
     <th class="exp">Statut</th>
     <th class="exp">Commentaire AM</th>`;
   }
@@ -340,14 +340,14 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
       <td class="r"><span class="${ecCls(r.ec)}" style="font-weight:500">${sign(r.ec)}${fv(r.ec)}</span></td>`;
     if(hasOL){
       const ol=r.ol||{};
-      tr+=`<td class="exp">${ol.type?tagHTML(ol.type):'—'}</td>
-      <td class="exp" style="font-size:11px">${ol.bailAv||'—'}</td>
-      <td class="exp r">${ol.loyerAv!=null?fmtE(ol.loyerAv):'—'}</td>
-      <td class="exp r">${ol.loyerAp!=null?fmtE(ol.loyerAp):'—'}</td>
-      <td class="exp">${ol.finAv||'—'}</td>
-      <td class="exp">${ol.finAp||'—'}</td>
-      <td class="exp" style="font-size:11px">${ol.statut||'—'}</td>
-      <td class="exp" style="font-size:11px;max-width:200px;white-space:normal">${ol.desc?String(ol.desc).slice(0,120)+(ol.desc.length>120?'…':''):'—'}</td>`;
+      tr+=`<td class="exp">${ol.type?tagHTML(ol.type):'\u2014'}</td>
+      <td class="exp" style="font-size:11px">${ol.bailAv||'\u2014'}</td>
+      <td class="exp r">${ol.loyerAv!=null?fmtE(ol.loyerAv):'\u2014'}</td>
+      <td class="exp r">${ol.loyerAp!=null?fmtE(ol.loyerAp):'\u2014'}</td>
+      <td class="exp">${ol.finAv||'\u2014'}</td>
+      <td class="exp">${ol.finAp||'\u2014'}</td>
+      <td class="exp" style="font-size:11px">${ol.statut||'\u2014'}</td>
+      <td class="exp" style="font-size:11px;max-width:200px;white-space:normal">${ol.desc?String(ol.desc).slice(0,120)+(ol.desc.length>120?'\u2026':''):'\u2014'}</td>`;
     }
     tr+='</tr>';
     return tr;
@@ -366,7 +366,7 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
 
   if(showDecomp&&decomp){
     const colSpan=hasOL?12:4;
-    body+=`<tr class="tr-decomp-head"><td colspan="${colSpan-1}">Décomposition de l'écart EBE total (${sign(tEc)}${fmtE(tEc)}) :</td><td></td></tr>`;
+    body+=`<tr class="tr-decomp-head"><td colspan="${colSpan-1}">D\u00E9composition de l'\u00E9cart EBE total (${sign(tEc)}${fmtE(tEc)}) :</td><td></td></tr>`;
     decomp.forEach(d=>{
       body+=`<tr class="tr-decomp"><td colspan="${colSpan-1}" style="padding-left:16px">${d.label}</td><td class="r"><span class="${ecCls(d.val)}" style="font-weight:500">${sign(d.val)}${fmtE(d.val)}</span></td></tr>`;
     });
@@ -378,8 +378,8 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
 function renderApp(){
   document.getElementById('app').style.display='block';
   const cy=commonYears();
-  let infoHtml=`<span><strong>Avant :</strong> ${dAv.scenario}</span><span><strong>Après :</strong> ${dAp.scenario}</span><span><strong>Années communes :</strong> ${cy.join(', ')}</span>`;
-  if(olData) infoHtml+=`<span class="ol-badge">📋 OL chargé — explications disponibles</span>`;
+  let infoHtml=`<span><strong>Avant :</strong> ${dAv.scenario}</span><span><strong>Apr\u00E8s :</strong> ${dAp.scenario}</span><span><strong>Ann\u00E9es communes :</strong> ${cy.join(', ')}</span>`;
+  if(olData) infoHtml+=`<span class="ol-badge">\u1F4CB OL charg\u00E9 \u2014 explications disponibles</span>`;
   document.getElementById('infoBar').innerHTML=infoHtml;
   if(!selYear||!cy.includes(selYear))selYear=cy[0]||null;
   document.getElementById('yearBtns').innerHTML=cy.map(y=>`<button class="year-btn${y===selYear?' active':''}" onclick="pickYear('${y}')">${y}</button>`).join(' ');
@@ -391,37 +391,26 @@ function renderTab(){
   if(!selYear)return;
   const tc=document.getElementById('tabContent'),y=selYear;
   const TABS={
-    surfaces:{type:'surface',title:`1. Analyse des écarts de surfaces — ${y}`,defn:"Surface occupée par locataire (en m²) — locataires avec écart uniquement",lAp:'Surface BP Après (m²)',lAv:'Surface BP Avant (m²)',isSurf:true,label:'surface occupée',decomp:false},
-    loyer_brut:{type:'loyerBrut',title:`2. Analyse des écarts de loyers bruts cash — ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement — locataires avec écart uniquement",lAp:'Loyer Brut BP Après (€)',lAv:'Loyer Brut BP Avant (€)',isSurf:false,label:'loyer brut cash',decomp:false},
-    honoraires:{type:'honoCom',title:`3. Analyse des écarts d'honoraires de commercialisation — ${y}`,defn:"Honoraires de commercialisation par locataire — locataires avec écart uniquement",lAp:'Honoraires BP Après (€)',lAv:'Honoraires BP Avant (€)',isSurf:false,label:'honoraires',decomp:false},
-    loyer_net:{type:'ebe',title:`4. Analyse des écarts de loyers nets cash (EBE) — ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges récup. + Charges",lAp:'Loyer Net BP Après (€)',lAv:'Loyer Net BP Avant (€)',isSurf:false,label:'EBE',decomp:true},
+    surfaces:{type:'surface',title:`1. Analyse des \u00E9carts de surfaces \u2014 ${y}`,defn:"Surface occup\u00E9e par locataire (en m\u00B2) \u2014 locataires avec \u00E9cart uniquement",lAp:'Surface BP Apr\u00E8s (m\u00B2)',lAv:'Surface BP Avant (m\u00B2)',isSurf:true,label:'surface occup\u00E9e',decomp:false},
+    loyer_brut:{type:'loyerBrut',title:`2. Analyse des \u00E9carts de loyers bruts cash \u2014 ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement \u2014 locataires avec \u00E9cart uniquement",lAp:'Loyer Brut BP Apr\u00E8s (\u20AC)',lAv:'Loyer Brut BP Avant (\u20AC)',isSurf:false,label:'loyer brut cash',decomp:false},
+    honoraires:{type:'honoCom',title:`3. Analyse des \u00E9carts d'honoraires de commercialisation \u2014 ${y}`,defn:"Honoraires de commercialisation par locataire \u2014 locataires avec \u00E9cart uniquement",lAp:'Honoraires BP Apr\u00E8s (\u20AC)',lAv:'Honoraires BP Avant (\u20AC)',isSurf:false,label:'honoraires',decomp:false},
+    loyer_net:{type:'ebe',title:`4. Analyse des \u00E9carts de loyers nets cash (EBE) \u2014 ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges r\u00E9cup. + Charges",lAp:'Loyer Net BP Apr\u00E8s (\u20AC)',lAv:'Loyer Net BP Avant (\u20AC)',isSurf:false,label:'EBE',decomp:true},
   };
   const cfg=TABS[curTab];
   const rows=buildComp(cfg.type,y),tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y);
   const decomp=cfg.decomp?[
     {label:'  dont Loyer brut cash',val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
-    {label:'  dont Charges récupérables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
+    {label:'  dont Charges r\u00E9cup\u00E9rables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
     {label:'  dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
     {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
   ]:null;
-  let tableHtml;
-  if(rows.length>0){
-    tableHtml=makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp);
-  }else{
-    const fStr=cfg.isSurf?v=>fmtN(v,0)+' m2':fmtE;
-    tableHtml='<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r);margin-top:8px">'
-      +'Aucun ecart bail par bail detecte - ce fichier ne contient que des agregats (ligne Tous).<br>'
-      +'<strong style="color:var(--text)">Ecart total : '+sign(tEc)+fStr(tEc)+'</strong>'
-      +' | BP Apres : '+fStr(tAp)
-      +' | BP Avant : '+fStr(tAv)
-      +'</div>';
-  }
+  var tableHtml=rows.length>0?makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp):'<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r)">'+(cfg.isSurf?fmtN(Math.abs(tEc),0)+' m2':fmtE(Math.abs(tEc)))+'</div>';
   tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+tableHtml+'</div>';
 }
 
-/* ══════════════════════════════════════════════════
-   EXPORT XLSX — ZIP STORE + styles XML pré-compilé
-══════════════════════════════════════════════════ */
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   EXPORT XLSX \u2014 ZIP STORE + styles XML pr\u00E9-compil\u00E9
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 function crc32(d){if(!crc32._t){crc32._t=new Uint32Array(256);for(let i=0;i<256;i++){let v=i;for(let j=0;j<8;j++)v=v&1?0xEDB88320^(v>>>1):v>>>1;crc32._t[i]=v;}}let c=0xFFFFFFFF;for(let i=0;i<d.length;i++)c=crc32._t[(c^d[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
 function zipStore(files){
   const enc=new TextEncoder();const entries=[];
@@ -447,12 +436,12 @@ const S={
   dLe:10,dM2e:11,dEe:12,
   posM2:13,posE:14,negM2:15,negE:16,neuM2:17,neuE:18,
   totL:19,dhL:20,dcL:21,
-  // Colonnes OL (fond bleu très clair)
+  // Colonnes OL (fond bleu tr\u00E8s clair)
   olL:22,    // texte left
   olE:23,    // euro right
   olLalt:24, // texte left (alternance)
   olEalt:25, // euro right alt
-  olLhdr:6,  // réutilise hdrR pour les en-têtes OL
+  olLhdr:6,  // r\u00E9utilise hdrR pour les en-t\u00EAtes OL
 };
 function sEc(v,isSurf){if(Math.abs(v||0)<0.01)return isSurf?S.neuM2:S.neuE;return v>0?(isSurf?S.posM2:S.posE):(isSurf?S.negM2:S.negE);}
 function sTotEc(v,isSurf){return sEc(v,isSurf);}
@@ -472,8 +461,8 @@ function buildWsXml(sheetsList,sst){
   for(const sheet of sheetsList){
     const{year,sections}=sheet;
     const hasOL=!!olData;
-    const nCols=hasOL?12:4; // A-D base + H-L OL si présent
-    // Colonnes : A=bail, B=après, C=avant, D=écart, E=type, F=bail av, G=loyer av, H=loyer ap, I=fin av, J=fin ap, K=statut, L=commentaire
+    const nCols=hasOL?12:4; // A-D base + H-L OL si pr\u00E9sent
+    // Colonnes : A=bail, B=apr\u00E8s, C=avant, D=\u00E9cart, E=type, F=bail av, G=loyer av, H=loyer ap, I=fin av, J=fin ap, K=statut, L=commentaire
     const colWidths=hasOL
       ?[46,20,20,18,16,30,16,16,10,10,16,40]
       :[46,22,22,20];
@@ -505,7 +494,7 @@ function buildWsXml(sheetsList,sst){
 
       // Headers
       let hdrs=[[0,'s','Locataire / bail',S.hL],[1,'s',lAp,S.hR],[2,'s',lAv,S.hR],[3,'s','\u00c9cart',S.hR]];
-      if(hasOL) hdrs=hdrs.concat([[4,'s','Type changement',S.hR],[5,'s','Bail avant',S.hR],[6,'s','Loyer base avant',S.hR],[7,'s','Loyer base après',S.hR],[8,'s','Fin avant',S.hR],[9,'s','Fin après',S.hR],[10,'s','Statut',S.hR],[11,'s','Commentaire AM',S.hR]]);
+      if(hasOL) hdrs=hdrs.concat([[4,'s','Type changement',S.hR],[5,'s','Bail avant',S.hR],[6,'s','Loyer base avant',S.hR],[7,'s','Loyer base apr\u00E8s',S.hR],[8,'s','Fin avant',S.hR],[9,'s','Fin apr\u00E8s',S.hR],[10,'s','Statut',S.hR],[11,'s','Commentaire AM',S.hR]]);
       xml+=mr(R,18,hdrs);R++;
 
       rows.forEach((row,idx)=>{
@@ -518,14 +507,14 @@ function buildWsXml(sheetsList,sst){
         if(hasOL){
           const ol=row.ol||{};
           cells=cells.concat([
-            [4,'s',ol.type||'—',olBg],
-            [5,'s',ol.bailAv||'—',olBg],
+            [4,'s',ol.type||'\u2014',olBg],
+            [5,'s',ol.bailAv||'\u2014',olBg],
             [6,'n',ol.loyerAv!=null?ol.loyerAv:0,olBgE],
             [7,'n',ol.loyerAp!=null?ol.loyerAp:0,olBgE],
-            [8,'s',ol.finAv||'—',olBg],
-            [9,'s',ol.finAp||'—',olBg],
-            [10,'s',ol.statut||'—',olBg],
-            [11,'s',ol.desc?String(ol.desc).slice(0,200):'—',olBg],
+            [8,'s',ol.finAv||'\u2014',olBg],
+            [9,'s',ol.finAp||'\u2014',olBg],
+            [10,'s',ol.statut||'\u2014',olBg],
+            [11,'s',ol.desc?String(ol.desc).slice(0,200):'\u2014',olBg],
           ]);
         }
         xml+=mr(R,16,cells);R++;
@@ -578,14 +567,14 @@ function buildXlsx(allYearsData){
 function exportExcel(){
   if(!dAv||!dAp)return;
   const btn=document.getElementById('exportBtn');
-  btn.textContent='⏳ Génération…';btn.disabled=true;
+  btn.textContent='\u23F3 G\u00E9n\u00E9ration\u2026';btn.disabled=true;
   try{
     const years=commonYears();
     const CFGS=[
-      {isSurf:true,type:'surface',lAp:'Surface BP Après (m²)',lAv:'Surface BP Avant (m²)',decomp:false,makeTitle:y=>`1. Analyse des écarts de surfaces — ${y}`,defn:"Surface occupée par locataire (en m²) — locataires avec écart uniquement"},
-      {isSurf:false,type:'loyerBrut',lAp:'Loyer Brut BP Après (€)',lAv:'Loyer Brut BP Avant (€)',decomp:false,makeTitle:y=>`2. Analyse des écarts de loyers bruts cash — ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement (Franchise + Palier)"},
-      {isSurf:false,type:'honoCom',lAp:'Honoraires BP Après (€)',lAv:'Honoraires BP Avant (€)',decomp:false,makeTitle:y=>`3. Analyse des écarts d'honoraires de commercialisation — ${y}`,defn:"Honoraires de commercialisation par locataire — locataires avec écart uniquement"},
-      {isSurf:false,type:'ebe',lAp:'Loyer Net BP Après (€)',lAv:'Loyer Net BP Avant (€)',decomp:true,makeTitle:y=>`4. Analyse des écarts de loyers nets cash (EBE) — ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges récup. + Charges"},
+      {isSurf:true,type:'surface',lAp:'Surface BP Apr\u00E8s (m\u00B2)',lAv:'Surface BP Avant (m\u00B2)',decomp:false,makeTitle:y=>`1. Analyse des \u00E9carts de surfaces \u2014 ${y}`,defn:"Surface occup\u00E9e par locataire (en m\u00B2) \u2014 locataires avec \u00E9cart uniquement"},
+      {isSurf:false,type:'loyerBrut',lAp:'Loyer Brut BP Apr\u00E8s (\u20AC)',lAv:'Loyer Brut BP Avant (\u20AC)',decomp:false,makeTitle:y=>`2. Analyse des \u00E9carts de loyers bruts cash \u2014 ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement (Franchise + Palier)"},
+      {isSurf:false,type:'honoCom',lAp:'Honoraires BP Apr\u00E8s (\u20AC)',lAv:'Honoraires BP Avant (\u20AC)',decomp:false,makeTitle:y=>`3. Analyse des \u00E9carts d'honoraires de commercialisation \u2014 ${y}`,defn:"Honoraires de commercialisation par locataire \u2014 locataires avec \u00E9cart uniquement"},
+      {isSurf:false,type:'ebe',lAp:'Loyer Net BP Apr\u00E8s (\u20AC)',lAv:'Loyer Net BP Avant (\u20AC)',decomp:true,makeTitle:y=>`4. Analyse des \u00E9carts de loyers nets cash (EBE) \u2014 ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges r\u00E9cup. + Charges"},
     ];
     const allYearsData=years.map(y=>({
       year:y,
@@ -594,7 +583,7 @@ function exportExcel(){
         const tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y),tEc=tAp-tAv;
         const decomp=cfg.decomp?[
           {label:'dont Loyer brut cash',val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
-          {label:'dont Charges récupérables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
+          {label:'dont Charges r\u00E9cup\u00E9rables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
           {label:'dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
           {label:'dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
         ]:null;
@@ -607,7 +596,7 @@ function exportExcel(){
     const a=document.createElement('a');a.href=url;a.download=`Analyse_Ecarts_${years[0]}_${years[years.length-1]}.xlsx`;a.click();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
   }catch(e){showErr('Erreur export : '+e.message);console.error(e);}
-  finally{btn.textContent='⬇ Export Excel';btn.disabled=false;}
+  finally{btn.textContent='\u2B07 Export Excel';btn.disabled=false;}
 }
 </script>
 </body>

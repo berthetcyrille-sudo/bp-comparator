@@ -414,11 +414,11 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
 }
 
 
-/* ════ RÉSUMÉ VERBAL ════ */
+/* \u2550\u2550\u2550\u2550 R\u00C9SUM\u00C9 VERBAL \u2550\u2550\u2550\u2550 */
 function generateSummary(rows, tEc, isSurf, typeLabel){
   if(!rows.length||Math.abs(tEc)<0.01) return '';
   function fmt(v){
-    if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+' m²';
+    if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+'\u00A0m\u00B2';
     return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.abs(v));
   }
   var direction=tEc>0?'augmente':'diminue';
@@ -442,21 +442,21 @@ function generateSummary(rows, tEc, isSurf, typeLabel){
   Object.keys(byType).forEach(function(t){
     var bails=byType[t];
     var noms=bails.map(function(r){
-      return '« '+r.bail+' » ('+(r.ec>0?'+':'')+fmt(r.ec)+')';
+      return '\u00AB\u00A0'+r.bail+'\u00A0\u00BB\u00A0('+(r.ec>0?'+':'')+fmt(r.ec)+')';
     });
     var liste=noms.length===1?noms[0]:noms.slice(0,-1).join(', ')+' et '+noms[noms.length-1];
-    if(t==='Nouveau bail') fragments.push((bails.length===1?"l'entrée":"les entrées")+' de '+liste);
+    if(t==='Nouveau bail') fragments.push((bails.length===1?"l'entr\u00E9e":"les entr\u00E9es")+' de '+liste);
     else if(t==='Bail sorti') fragments.push((bails.length===1?"la sortie":"les sorties")+' de '+liste);
-    else if(t==='Renommage'||t==='Renommage + Δ loyer') fragments.push('le renommage de '+liste);
-    else if(t==='Δ loyer') fragments.push('la révision du loyer de '+liste);
-    else if(t==='Δ date fin') fragments.push('le changement de date de fin de '+liste);
-    else if(t==='Δ loyer + Δ date fin') fragments.push('la révision du loyer et de la date de fin de '+liste);
-    else fragments.push("l'évolution de "+liste);
+    else if(t==='Renommage'||t==='Renommage + \u0394 loyer') fragments.push('le renommage de '+liste);
+    else if(t==='\u0394 loyer') fragments.push('la r\u00E9vision du loyer de '+liste);
+    else if(t==='\u0394 date fin') fragments.push('le changement de date de fin de '+liste);
+    else if(t==='\u0394 loyer + \u0394 date fin') fragments.push('la r\u00E9vision du loyer et de la date de fin de '+liste);
+    else fragments.push("l'\u00E9volution de "+liste);
   });
   if(!fragments.length) return '';
   var cause=fragments.length===1?fragments[0]:fragments.slice(0,-1).join(', ')+' et '+fragments[fragments.length-1];
   var intro='La '+typeLabel+' '+direction+' de '+fmt(Math.abs(tEc));
-  var suffix=keyRows.length<rows.length?' — principalement due à '+cause+', représentant '+pct+'% de l’écart total.':' — due à '+cause+'.';
+  var suffix=keyRows.length<rows.length?' \u2014 principalement due \u00E0 '+cause+', repr\u00E9sentant '+pct+'% de l\u2019\u00E9cart total.':' \u2014 due \u00E0 '+cause+'.';
   return '<div style="background:var(--bg2);border-left:3px solid var(--inf);border-radius:0 var(--r) var(--r) 0;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text);line-height:1.6">'+intro+suffix+'</div>';
 }
 function renderApp(){
@@ -485,10 +485,7 @@ function renderTab(){
   const summary=generateSummary(rows,tEc,cfg.isSurf,cfg.label);
   const avHasDetail=Object.keys(getAggBail(dAv,cfg.type,y)).length>0;
   const apHasDetail=Object.keys(getAggBail(dAp,cfg.type,y)).length>0;
-  const asymWarning=(!avHasDetail||!apHasDetail)&&rows.length>0
-    ?'<div style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#713f12">'
-    +'⚠️ Detail bail disponible uniquement en '+(apHasDetail?'BP Épres':'BP Avant')
-    +' — la colonne '+(apHasDetail?'Avant':'Après')+' affiche 0 par defaut.</div>':'';
+    const asymWarning=(!avHasDetail||!apHasDetail)&&rows.length>0?'<div style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#713f12">\u26A0\uFE0F D\u00E9tail bail disponible uniquement en '+(apHasDetail?'BP Apr\u00E8s':'BP Avant')+' \u2014 la colonne '+(apHasDetail?'Avant':'Apr\u00E8s')+' affiche 0 par d\u00E9faut.</div>':'';
   const decomp=cfg.decomp?[
     {label:'  dont Loyer brut cash',val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
     {label:'  dont Charges r\u00E9cup\u00E9rables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},

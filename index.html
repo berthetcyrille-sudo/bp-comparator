@@ -319,7 +319,7 @@ function confirmSheets(){
   const av=document.getElementById('selAv').value,ap=document.getElementById('selAp').value;
   if(av===ap){showErr('S\u00E9lectionnez deux onglets diff\u00E9rents.');return;}
   showErr(null);
-  try{dAv=parseSheet(pendingWb,av,av);dAp=parseSheet(pendingWb,ap,ap);pendingWb=null;document.getElementById('sheetPicker').classList.remove('on');setDropDone();renderApp();}
+  try{dAv=parseSheet(pendingWb,av,av);dAp=parseSheet(pendingWb,ap,ap);pendingWb=null;document.getElementById('sheetPicker').classList.remove('on');setDropDone();renderApp();setTimeout(function(){try{buildGlobalSynth();}catch(e){console.error('synthese error:',e);}},400);}
   catch(e){showErr('Erreur : '+e.message);}
 }
 function resetAll(){
@@ -663,6 +663,7 @@ function closeSynth(){
 }
 
 function buildGlobalSynth(){
+  if(!dAv||!dAp) return;
   var years=commonYears();
   if(!years.length) return;
 

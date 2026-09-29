@@ -481,14 +481,14 @@ function renderTab(){
     loyer_net:{type:'ebe',title:`4. Analyse des \u00E9carts de loyers nets cash (EBE) \u2014 ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges r\u00E9cup. + Charges",lAp:'Loyer Net BP Apr\u00E8s (\u20AC)',lAv:'Loyer Net BP Avant (\u20AC)',isSurf:false,label:'EBE',decomp:true},
   };
   const cfg=TABS[curTab];
-  const rows=buildComp(cfg.type,y),tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y);
-  const summary=generateSummary(rows,tAp-tAv,cfg.isSurf,cfg.label);
+  const rows=buildComp(cfg.type,y),tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y),tEc=tAp-tAv;
+  const summary=generateSummary(rows,tEc,cfg.isSurf,cfg.label);
   const avHasDetail=Object.keys(getAggBail(dAv,cfg.type,y)).length>0;
   const apHasDetail=Object.keys(getAggBail(dAp,cfg.type,y)).length>0;
   const asymWarning=(!avHasDetail||!apHasDetail)&&rows.length>0
     ?'<div style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#713f12">'
     +'⚠️ Detail bail disponible uniquement en '+(apHasDetail?'BP Épres':'BP Avant')
-    +' — la colonne '+(apHasDetail?'Avant':'Après')+' affiche 0 par defaut.</div>':''
+    +' — la colonne '+(apHasDetail?'Avant':'Après')+' affiche 0 par defaut.</div>':'';
   const decomp=cfg.decomp?[
     {label:'  dont Loyer brut cash',val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
     {label:'  dont Charges r\u00E9cup\u00E9rables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},

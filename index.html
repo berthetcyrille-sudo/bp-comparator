@@ -404,15 +404,19 @@ function renderTab(){
     {label:'  dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
     {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
   ]:null;
-  const tableHtml = rows.length > 0
-    ? makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp)
-    : `<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r);margin-top:8px">
-        ℹ️ Aucun écart bail par bail détecté — ce fichier ne contient que des agrégats (ligne "Tous").<br>
-        <strong style="color:var(--text)">Écart total : ${sign(tEc)}${isSurf?fmtN(Math.abs(tEc),0)+' m²':fmtE(Math.abs(tEc))}</strong>
-        &nbsp;|&nbsp; BP Après : ${isSurf?fmtN(tAp,0)+' m²':fmtE(tAp)}
-        &nbsp;|&nbsp; BP Avant : ${isSurf?fmtN(tAv,0)+' m²':fmtE(tAv)}
-       </div>`;
-  tc.innerHTML=\`<div class="card"><div class="ctx"><div>\${cfg.title}</div><div>\${cfg.defn}</div><div>\${ctxLine(cfg.label,tAp,tAv,cfg.isSurf)}</div></div>\${tableHtml}</div>\`;
+  let tableHtml;
+  if(rows.length>0){
+    tableHtml=makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp);
+  }else{
+    const fStr=cfg.isSurf?v=>fmtN(v,0)+' m2':fmtE;
+    tableHtml='<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r);margin-top:8px">'
+      +'Aucun ecart bail par bail detecte - ce fichier ne contient que des agregats (ligne Tous).<br>'
+      +'<strong style="color:var(--text)">Ecart total : '+sign(tEc)+fStr(tEc)+'</strong>'
+      +' | BP Apres : '+fStr(tAp)
+      +' | BP Avant : '+fStr(tAv)
+      +'</div>';
+  }
+  tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+tableHtml+'</div>';
 }
 
 /* ══════════════════════════════════════════════════

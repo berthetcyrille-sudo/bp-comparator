@@ -470,7 +470,7 @@ function renderApp(){
   renderTab();
 }
 function pickYear(y){selYear=y;document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',b.textContent===y));renderTab();}
-function switchTab(t){curTab=t;document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['surfaces','loyer_brut','honoraires','loyer_net'][i]===t));renderTab();}
+function switchTab(t){curTab=t;document.querySelectorAll('.tab').forEach(function(el){var m=el.getAttribute('onclick');el.classList.toggle('active',m&&m.indexOf("'"+t+"'")>=0);});renderTab();}
 function renderTab(){
   if(!selYear)return;
   const tc=document.getElementById('tabContent'),y=selYear;

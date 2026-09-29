@@ -421,85 +421,44 @@ function generateSummary(rows,tEc,isSurf,typeLabel){
     if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+'\u00A0m\u00B2';
     return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.abs(v));
   }
+  function shortName(bail){
+    // Tronquer avant le premier "/" : "TUNZINI/TUNZ3/00001" -> "TUNZINI"
+    var parts=bail.split('/');
+    return parts[0].trim();
+  }
   var direction=tEc>0?'augmente':'diminue';
-  // Dedupliquer les renamings : si bail A (avant) -> bail B (apres), ne garder que B
-  // Un renommage cr\u00E9e 2 lignes : av=X/ap=0 pour A, av=0/ap=X pour B
-  // On les fusionne en 1 ligne : bail=B, av=X, ap=X, ec=0 -> on les exclut de la phrase
-  // ou on les mentionne une seule fois avec le bon ecart
-  var deduped=[];
-  var usedBails=new Set();
+  // Dedupliquer : regrouper les baux dont le nom court est identique
+  // Ex: TUNZINI/00001 (-3285) + TUNZINI/TUNZ3/00001 (+3285) -> TUNZINI, ecart net = 0
+  // On garde uniquement les groupes dont l'ecart net est non nul
+  var groups={};
   rows.forEach(function(r){
-    if(usedBails.has(r.bail)) return;
-    var ol=r.ol||{};
-    // Si c'est un renommage (bail av different de bail ap)
-    // le bail "avant" apparait avec ec negatif et le bail "apres" avec ec positif
-    // On cherche si un autre bail dans rows est le pendant de ce renommage
-    if(ol.type&&(ol.type.indexOf('Renommage')>=0)&&ol.bailAv&&ol.bailAv!==r.bail&&ol.bailAv!=='\\u2014'){
-      // Ce bail est le "apres" du renommage - chercher le "avant"
-      var pendant=rows.find(function(r2){return r2.bail===ol.bailAv;});
-      if(pendant){
-        usedBails.add(pendant.bail);
-        // L'ecart reel du renommage = ap(nouveau) - av(ancien)
-        deduped.push({bail:r.bail,bailAv:ol.bailAv,av:pendant.av||r.av,ap:r.ap||pendant.ap,ec:r.ec+pendant.ec,ol:ol,merged:true});
-      }else{
-        deduped.push(r);
-      }
-    }else if(!usedBails.has(r.bail)){
-      deduped.push(r);
-    }
-    usedBails.add(r.bail);
+    var k=shortName(r.bail);
+    if(!groups[k]) groups[k]={name:k,ec:0,abs:0};
+    groups[k].ec+=r.ec;
+    groups[k].abs+=Math.abs(r.ec);
   });
-  // Trier par ecart absolu
-  deduped.sort(function(a,b){return Math.abs(b.ec)-Math.abs(a.ec);});
-  // Garder ceux qui couvrent 80% ET max 4 bails
-  var totalAbs=deduped.reduce(function(s,r){return s+Math.abs(r.ec);},0);
-  var cumul=0,keyRows=[];
-  for(var i=0;i<deduped.length&&i<4;i++){
-    keyRows.push(deduped[i]);
-    cumul+=Math.abs(deduped[i].ec);
+  // Trier par ecart absolu net decroissant, filtrer ecart net non nul
+  var sorted=Object.values(groups)
+    .filter(function(g){return Math.abs(g.ec)>0.01;})
+    .sort(function(a,b){return Math.abs(b.ec)-Math.abs(a.ec);});
+  if(!sorted.length) return '';
+  // Couvrir 80% de l'ecart total absolu, max 4
+  var totalAbs=sorted.reduce(function(s,g){return s+Math.abs(g.ec);},0);
+  var cumul=0,key=[];
+  for(var i=0;i<sorted.length&&i<4;i++){
+    key.push(sorted[i]);
+    cumul+=Math.abs(sorted[i].ec);
     if(cumul/totalAbs>=0.80) break;
   }
   var pct=Math.round(cumul/totalAbs*100);
-  // Grouper par type
-  var byType={};
-  keyRows.forEach(function(r){
-    var t=(r.ol&&r.ol.type)||'';
-    if(!byType[t]) byType[t]=[];
-    byType[t].push(r);
+  var noms=key.map(function(g){
+    return g.name+'\u00A0('+fmt(g.ec)+')';
   });
-  var fragments=[];
-  Object.keys(byType).forEach(function(t){
-    var bails=byType[t];
-    // Formatter chaque bail
-    var noms=bails.map(function(r){
-      var name='\u00AB\u00A0'+r.bail+'\u00A0\u00BB';
-      var detail='';
-      if(r.merged){
-        // Renommage : ancien nom -> nouveau nom, surface inchangee
-        detail=' (ex\u00A0'+r.bailAv+', '+fmt(r.ap)+')';
-      }else if(Math.abs(r.av)>0.01&&Math.abs(r.ap)>0.01){
-        // Changement de valeur : de X a Y
-        detail=' (de\u00A0'+fmt(r.av)+' \u00E0\u00A0'+fmt(r.ap)+')';
-      }else if(Math.abs(r.ap)>0.01){
-        detail=' ('+fmt(r.ap)+')';
-      }else{
-        detail=' (\u2212'+fmt(r.av)+')';
-      }
-      return name+detail;
-    });
-    var liste=noms.length===1?noms[0]:noms.slice(0,-1).join(', ')+' et '+noms[noms.length-1];
-    if(t==='Nouveau bail') fragments.push((bails.length===1?"l'entr\u00E9e":"les entr\u00E9es")+' de '+liste);
-    else if(t==='Bail sorti') fragments.push((bails.length===1?"la sortie":"les sorties")+' de '+liste);
-    else if(t==='Renommage'||t==='Renommage + \u0394 loyer') fragments.push((bails.length===1?"le renommage":"les renommages")+' de '+liste);
-    else if(t==='\u0394 loyer') fragments.push((bails.length===1?"la r\u00E9vision du loyer":"les r\u00E9visions de loyer")+' de '+liste);
-    else if(t==='\u0394 date fin') fragments.push("le changement de date de fin de "+liste);
-    else if(t==='\u0394 loyer + \u0394 date fin') fragments.push("la r\u00E9vision du loyer et de la date de fin de "+liste);
-    else fragments.push("l'\u00E9volution de "+liste);
-  });
-  if(!fragments.length) return '';
-  var cause=fragments.length===1?fragments[0]:fragments.slice(0,-1).join(', ')+' et '+fragments[fragments.length-1];
+  var liste=noms.length===1?noms[0]:noms.slice(0,-1).join(', ')+' et '+noms[noms.length-1];
   var intro='La '+typeLabel+' '+direction+' de '+fmt(Math.abs(tEc));
-  var suffix=keyRows.length<deduped.length?' \u2014 principalement due \u00E0 '+cause+', repr\u00E9sentant '+pct+'% de l\u2019\u00E9cart total.':' \u2014 due \u00E0 '+cause+'.';
+  var suffix=key.length<sorted.length
+    ?' \u2014 principalement due aux baux '+liste+', repr\u00E9sentant '+pct+'% de l\u2019\u00E9cart total.'
+    :' \u2014 due aux baux '+liste+'.';
   return '<div style="background:var(--bg2);border-left:3px solid var(--inf);border-radius:0 var(--r) var(--r) 0;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text);line-height:1.6">'+intro+suffix+'</div>';
 }
 

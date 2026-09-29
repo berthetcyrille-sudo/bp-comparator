@@ -413,6 +413,52 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
   return`<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
+
+/* ════ RÉSUMÉ VERBAL ════ */
+function generateSummary(rows, tEc, isSurf, typeLabel){
+  if(!rows.length||Math.abs(tEc)<0.01) return '';
+  function fmt(v){
+    if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+' m²';
+    return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.abs(v));
+  }
+  var direction=tEc>0?'augmente':'diminue';
+  var sorted=[...rows].sort(function(a,b){return Math.abs(b.ec)-Math.abs(a.ec);});
+  var totalAbs=rows.reduce(function(s,r){return s+Math.abs(r.ec);},0);
+  var cumul=0, keyRows=[];
+  for(var i=0;i<sorted.length;i++){
+    keyRows.push(sorted[i]);
+    cumul+=Math.abs(sorted[i].ec);
+    if(cumul/totalAbs>=0.80) break;
+  }
+  var pct=Math.round(cumul/totalAbs*100);
+  // Grouper par type de changement
+  var byType={};
+  keyRows.forEach(function(r){
+    var t=(r.ol&&r.ol.type)||'';
+    if(!byType[t]) byType[t]=[];
+    byType[t].push(r);
+  });
+  var fragments=[];
+  Object.keys(byType).forEach(function(t){
+    var bails=byType[t];
+    var noms=bails.map(function(r){
+      return '« '+r.bail+' » ('+(r.ec>0?'+':'')+fmt(r.ec)+')';
+    });
+    var liste=noms.length===1?noms[0]:noms.slice(0,-1).join(', ')+' et '+noms[noms.length-1];
+    if(t==='Nouveau bail') fragments.push((bails.length===1?"l'entrée":"les entrées")+' de '+liste);
+    else if(t==='Bail sorti') fragments.push((bails.length===1?"la sortie":"les sorties")+' de '+liste);
+    else if(t==='Renommage'||t==='Renommage + Δ loyer') fragments.push('le renommage de '+liste);
+    else if(t==='Δ loyer') fragments.push('la révision du loyer de '+liste);
+    else if(t==='Δ date fin') fragments.push('le changement de date de fin de '+liste);
+    else if(t==='Δ loyer + Δ date fin') fragments.push('la révision du loyer et de la date de fin de '+liste);
+    else fragments.push("l'évolution de "+liste);
+  });
+  if(!fragments.length) return '';
+  var cause=fragments.length===1?fragments[0]:fragments.slice(0,-1).join(', ')+' et '+fragments[fragments.length-1];
+  var intro='La '+typeLabel+' '+direction+' de '+fmt(Math.abs(tEc));
+  var suffix=keyRows.length<rows.length?' — principalement due à '+cause+', représentant '+pct+'% de l’écart total.':' — due à '+cause+'.';
+  return '<div style="background:var(--bg2);border-left:3px solid var(--inf);border-radius:0 var(--r) var(--r) 0;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text);line-height:1.6">'+intro+suffix+'</div>';
+}
 function renderApp(){
   document.getElementById('app').style.display='block';
   const cy=commonYears();
@@ -436,6 +482,7 @@ function renderTab(){
   };
   const cfg=TABS[curTab];
   const rows=buildComp(cfg.type,y),tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y);
+  const summary=generateSummary(rows,tAp-tAv,cfg.isSurf,cfg.label);
   const avHasDetail=Object.keys(getAggBail(dAv,cfg.type,y)).length>0;
   const apHasDetail=Object.keys(getAggBail(dAp,cfg.type,y)).length>0;
   const asymWarning=(!avHasDetail||!apHasDetail)&&rows.length>0
@@ -449,7 +496,7 @@ function renderTab(){
     {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
   ]:null;
   var tableHtml=rows.length>0?makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp):'<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r)">'+(cfg.isSurf?fmtN(Math.abs(tEc),0)+' m2':fmtE(Math.abs(tEc)))+'</div>';
-  tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+asymWarning+tableHtml+'</div>';
+  tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+summary+asymWarning+tableHtml+'</div>';
 }
 
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550

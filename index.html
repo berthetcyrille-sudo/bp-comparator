@@ -469,7 +469,7 @@ function renderApp(){
   if(olData) infoHtml+=`<span class="ol-badge">\u1F4CB OL charg\u00E9 \u2014 explications disponibles</span>`;
   document.getElementById('infoBar').innerHTML=infoHtml;
   if(!selYear||!cy.includes(selYear))selYear=cy[0]||null;
-  setTimeout(buildGlobalSynth,200);
+  setTimeout(function(){try{buildGlobalSynth();}catch(e){console.error("synthese error:",e);}},400);
   document.getElementById('yearBtns').innerHTML=cy.map(y=>`<button class="year-btn${y===selYear?' active':''}" onclick="pickYear('${y}')">${y}</button>`).join(' ');
   renderTab();
 }
@@ -807,5 +807,9 @@ function exportExcel(){
   finally{btn.textContent='\u2B07 Export Excel';btn.disabled=false;}
 }
 </script>
+
+<div id="synthModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;padding:1rem;"><div style="background:var(--bg);border-radius:var(--rl);max-width:680px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="padding:1.25rem 1.5rem;border-bottom:.5px solid var(--brd);display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:16px;font-weight:600;margin-bottom:2px;">Analyse globale des &#233;carts</div><div style="font-size:12px;color:var(--text2)" id="synthSubtitle"></div></div><button onclick="closeSynth()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);padding:4px 8px;">&#x2715;</button></div><div id="synthBody" style="padding:1.25rem 1.5rem;font-size:13px;line-height:1.8;color:var(--text);"></div><div style="padding:1rem 1.5rem;border-top:.5px solid var(--brd);text-align:right;"><button onclick="closeSynth()" class="btn btn-primary">OK, voir l&#8217;analyse &#8594;</button></div></div></div>
+
+<div id="synthModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;padding:1rem;"><div style="background:var(--bg);border-radius:var(--rl);max-width:680px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);"><div style="padding:1.25rem 1.5rem;border-bottom:.5px solid var(--brd);display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:16px;font-weight:600;margin-bottom:2px;">Analyse globale des &#233;carts</div><div style="font-size:12px;color:var(--text2)" id="synthSubtitle"></div></div><button onclick="closeSynth()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);padding:4px 8px;">&#215;</button></div><div id="synthBody" style="padding:1.25rem 1.5rem;font-size:13px;line-height:1.8;color:var(--text);"></div><div style="padding:1rem 1.5rem;border-top:.5px solid var(--brd);text-align:right;"><button onclick="closeSynth()" class="btn btn-primary">OK, voir l'analyse &#8594;</button></div></div></div>
 </body>
 </html>

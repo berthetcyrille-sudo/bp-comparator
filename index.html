@@ -111,30 +111,30 @@ function isBP(wb,n){return!!detectFmt(wb,n);}
 function parseOL(wb,sheetName){
   const raw=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{defval:null});
   if(!raw.length) return null;
-  // Index par scenario -> bail -> rows
   const snap={}, master={};
+  const snapSurf={}, masterSurf={};
   raw.forEach(r=>{
     const sc=r['Master ou Type de sc\u00E9nario'];
     const bail=String(r['Nom bu bail']||'').trim();
     if(!bail) return;
+    const surf=Number(r['Surface du lot'])||0;
     if(sc==='snapshot'){
       if(!snap[bail]) snap[bail]=[];
       snap[bail].push(r);
+      snapSurf[bail]=(snapSurf[bail]||0)+surf;
     }else if(sc==='master'){
       if(!master[bail]) master[bail]=[];
       master[bail].push(r);
+      masterSurf[bail]=(masterSurf[bail]||0)+surf;
     }
   });
-  // Index par lot -> snapshot rows (pour retrouver bail avant d'un bail apr\u00E8s)
   const snapByLot={};
   Object.values(snap).flat().forEach(r=>{
     const lot=String(r['Nom du lot']||'').trim();
     if(lot){if(!snapByLot[lot])snapByLot[lot]=[];snapByLot[lot].push(r);}
   });
-  return{snap,master,snapByLot};
+  return{snap,master,snapByLot,snapSurf,masterSurf};
 }
-
-/* Pour un bail (apr\u00E8s), retrouver l'explication depuis OL */
 function getOLExplanation(bailAp){
   if(!olData) return null;
   const {master,snapByLot}=olData;
@@ -223,6 +223,14 @@ const CF={
   ebe:r=>{const c=r['Compte'],cat=r['Cat\u00E9gorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement")||(r['Sous-cat\u00E9gorie']==='Honoraires de commercialisation'&&c===8503)||(c===5200&&cat==='Charges Recup')||(c===6000&&cat==='Charges');}
 };
 function getAggBail(d,t,y){
+  // Pour les surfaces, utiliser l'OL si disponible (plus complet que le Comparateur)
+  if(t==='surface'&&olData){
+    // Determiner si c'est le BP avant (snapshot) ou apres (master)
+    // On compare le scenario du BP avec les donnees OL
+    const isAfter=d===dAp;
+    const surfMap=isAfter?olData.masterSurf:olData.snapSurf;
+    if(surfMap&&Object.keys(surfMap).length>0) return Object.fromEntries(Object.entries(surfMap).filter(([k,v])=>v>0));
+  }
   if(d.format==='comp'){if(t==='surface')return d.aggBailSurface(y);if(t==='loyerBrut')return d.aggBailLoyerBrut(y);if(t==='honoCom')return d.aggBailHonoCom(y);if(t==='ebe')return d.aggBailEBE(y);}
   return d.aggBail(y,CF[t]);
 }

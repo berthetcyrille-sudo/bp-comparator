@@ -222,15 +222,7 @@ function parseComp(wb,sn,label){
   function abp(y,ps){const m={};ps.forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;}
   function atp(y,p){return gv(p,'Tous',y)||gv(p,'Total',y)||0;}
   return{scenario,years,label,format:'comp',
-    aggBailSurface:y=>{
-      var raw=abp(y,['Surface occup\u00E9e']);
-      var grouped={};
-      Object.entries(raw).forEach(function(e){
-        var k=e[0].split('/')[0].trim();
-        grouped[k]=(grouped[k]||0)+e[1];
-      });
-      return grouped;
-    },
+    aggBailSurface:y=>abp(y,['Surface occup\u00E9e']),
     aggBailLoyerBrut:y=>{const m={};['Loyer','Franchise','Palier','Participation aux travaux preneurs'].forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;},
     aggBailHonoCom:y=>abp(y,['Honoraires de commercialisation']),
     aggBailEBE:y=>{const m={};const lb=abp(y,['Loyer','Franchise','Palier','Participation aux travaux preneurs']);const hc=abp(y,['Honoraires de commercialisation']);Object.entries(lb).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});Object.entries(hc).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});return m;},
@@ -260,16 +252,8 @@ function getAggBail(d,t,y){
     const surfMap=isAfter?olData.masterSurf:olData.snapSurf;
     if(surfMap&&Object.keys(surfMap).length>0) return Object.fromEntries(Object.entries(surfMap).filter(([k,v])=>v>0));
   }
-  var raw;
-  if(d.format==='comp'){if(t==='surface')raw=d.aggBailSurface(y);else if(t==='loyerBrut')raw=d.aggBailLoyerBrut(y);else if(t==='honoCom')raw=d.aggBailHonoCom(y);else if(t==='ebe')raw=d.aggBailEBE(y);}
-  else raw=d.aggBail(y,CF[t]);
-  // Pour la surface, regrouper par nom court (avant le /) pour gerer les renommages
-  if(t==='surface'&&raw){
-    var grouped={};
-    Object.entries(raw).forEach(function(e){var k=e[0].split('/')[0].trim();grouped[k]=(grouped[k]||0)+e[1];});
-    return grouped;
-  }
-  return raw;
+  if(d.format==='comp'){if(t==='surface')return d.aggBailSurface(y);else if(t==='loyerBrut')return d.aggBailLoyerBrut(y);else if(t==='honoCom')return d.aggBailHonoCom(y);else if(t==='ebe')return d.aggBailEBE(y);}
+  return d.aggBail(y,CF[t]);
 }
 function getTotal(d,t,y){
   if(d.format==='comp'){if(t==='surface')return d.aggTotalSurface(y);if(t==='loyerBrut')return d.aggTotalLoyerBrut(y);if(t==='honoCom')return d.aggTotalHonoCom(y);if(t==='chargesR')return d.aggTotalChargesR(y);if(t==='charges')return d.aggTotalCharges(y);if(t==='ebe')return d.aggTotalEBE(y);}

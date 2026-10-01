@@ -347,7 +347,7 @@ function ecCls(v){return v>=0?'pos-t':'neg-t';}
 function sumC(rows,k){return rows.reduce((s,r)=>s+(isFinite(r[k])?r[k]:0),0);}
 function ctxLine(label,tAp,tAv,isSurf){const ec=tAp-tAv,fmt=isSurf?v=>fmtN(v,0)+' m\u00B2':fmtE;return`\u00C9cart total ${label} : <strong>${sign(ec)}${fmt(ec)}</strong> &nbsp;|&nbsp; BP Apr\u00E8s : <strong>${fmt(tAp)}</strong> &nbsp;|&nbsp; BP Avant : <strong>${fmt(tAv)}</strong>`;}
 
-function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
+function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp,totalAp,totalAv){
   const fv=isSurf?v=>fmtN(v,2)+' m\u00B2':fmtE;
   const hasOL=!!olData;
 
@@ -390,7 +390,7 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp){
     return tr;
   }).join('');
 
-  const tAp=sumC(rows,'ap'),tAv=sumC(rows,'av'),tEc=tAp-tAv;
+  const tAp=totalAp!==undefined?totalAp:sumC(rows,'ap'),tAv=totalAv!==undefined?totalAv:sumC(rows,'av'),tEc=tAp-tAv;
   const totLabel=showDecomp?'TOTAL (EBE)':'TOTAL';
   let totRow=`<tr class="tr-tot">
     <td>${totLabel}</td>
@@ -495,7 +495,7 @@ function renderTab(){
     {label:'  dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
     {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
   ]:null;
-  var tableHtml=rows.length>0?makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp):'<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r)">'+(cfg.isSurf?fmtN(Math.abs(tEc),0)+' m2':fmtE(Math.abs(tEc)))+'</div>';
+  var tableHtml=rows.length>0?makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp,tAp,tAv):'<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r)">'+(cfg.isSurf?fmtN(Math.abs(tEc),0)+' m2':fmtE(Math.abs(tEc)))+'</div>';
   tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+summary+asymWarning+tableHtml+'</div>';
 }
 

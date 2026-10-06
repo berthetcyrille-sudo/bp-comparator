@@ -228,21 +228,45 @@ function parseComp(wb,sn,label){
     aggBailLoyer:y=>abp(y,['Loyer','Surloyer / majoration loyer','Autres flux du bail']),
     aggBailMesures:y=>abp(y,['Franchise','Palier','Participation aux travaux preneurs']),
     aggBailCharges:y=>{
-      var SKIP=['EBE','Cash flow total','Occupation','Revenus Locatifs','Loyer','Honoraires de commercialisation','Ajustement charges OPEX ATR'];
-      var m={};
+      // Groupes fixes selon nomenclature STE (Sophie)
+      var GROUPS_C={
+        'Charges - Taxes':['Taxe Foncieres','Taxes Foncieres','Teom','Tabif','Taxe bureau','Taxe Parking','Taxe Annuelle Surfaces Pkgs'],
+        'Charges - Honoraires':['Honoraires gestion technique','Hono Gestion Technique','Honoraires gestion loyer','Hono Gestion Loyer'],
+        'Charges - Assurance':['Assurance'],
+        'Charges - Charges g\u00E9n\u00E9rales':['Charges G\u00E9n\u00E9rales','Charges Generales'],
+        'Charges - NR par nature':['Charges NR par Nature'],
+        'Charges - Transitoire vacant':['Charges Transitoires Vacance','Electricite Locaux Vacants'],
+        'Charges - Marketing':['Restaurant Inter Entreprises','Marketing'],
+      };
+      var GROUPS_R={
+        'Charges Recup - Taxes recup':['R\u00E9cup\u00E9ration Taxe Fonci\u00E8re','Recup\u00E9ration Taxe Fonci\u00E8re','Taxes Foncieres','Teom','R\u00E9cup\u00E9ration Taxe bureau','Recup\u00E9ration Taxe bureau'],
+        'Charges Recup - Assurance recup':['R\u00E9cup\u00E9ration Assurance','Recuperation Assurance'],
+        'Charges Recup - Honoraires recup':['R\u00E9cup\u00E9ration Hono gestion technique','Recuperation Hono gestion technique'],
+        'Charges Recup - Charges g\u00E9n\u00E9rales recup':['R\u00E9cup\u00E9ration Charges','Recuperation Charges'],
+      };
+      // Lire les valeurs brutes par poste
+      var raw={};
       for(var i=1;i<aoa.length;i++){
         var r=aoa[i];if(!r)continue;
         var p=String(r[0]||'').trim();
         var b=String(r[1]||'').trim();
-        if(b!=='Tous'&&b!=='Total')continue;
+        if(b!=='Tous'&&b!=='Total'&&b!=='Tous ')continue;
         var ci2=yc[y];if(!ci2)continue;
-        var v=toNum(r[ci2]);if(v===0)continue;
-        var skip=false;
-        for(var s=0;s<SKIP.length;s++){if(p===SKIP[s]){skip=true;break;}}
-        if(skip)continue;
-        if(p.indexOf('Surface')>=0||p.indexOf('Place de parking')>=0||p.indexOf('Taux')>=0||p.indexOf('VLM')>=0||p==='TOF'||p.indexOf('Mesures')>=0||p.indexOf('Franchise')>=0||p.indexOf('Palier')>=0)continue;
-        m[p]=(m[p]||0)+v;
+        raw[p]=(raw[p]||0)+toNum(r[ci2]);
       }
+      // Agr\u00E9ger par groupe
+      var m={};
+      var allGroups=Object.assign({},GROUPS_C,GROUPS_R);
+      Object.keys(allGroups).forEach(function(grp){
+        var total=0;
+        allGroups[grp].forEach(function(soneka){total+=(raw[soneka]||0);});
+        if(total!==0) m[grp]=total;
+      });
+      // Totaux des deux familles pour le %
+      var totC=0,totR=0;
+      Object.keys(GROUPS_C).forEach(function(g){totC+=(m[g]||0);});
+      Object.keys(GROUPS_R).forEach(function(g){totR+=(m[g]||0);});
+      m['__totC']=totC;m['__totR']=totR;
       return m;
     },
     aggBailHonoCom:y=>abp(y,['Honoraires de commercialisation']),
@@ -285,7 +309,10 @@ function getTotal(d,t,y){
   return d.aggTotal(y,CF[t]||CF.ebe);
 }
 function buildComp(t,y){
-  const am=getAggBail(dAv,t,y),pm=getAggBail(dAp,t,y);
+  var am=getAggBail(dAv,t,y),pm=getAggBail(dAp,t,y);
+  // Filtrer les cl\u00E9s internes __
+  function filterInternal(m){var r={};Object.keys(m).forEach(function(k){if(k.indexOf('__')!==0)r[k]=m[k];});return r;}
+  if(t==='chargesAll'){am=filterInternal(am);pm=filterInternal(pm);}
   const avHasDetail=Object.keys(am).length>0;
   const apHasDetail=Object.keys(pm).length>0;
   // Si seulement un cote a du detail, on n'affiche que les baux du cote detaille
@@ -393,8 +420,11 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp,totalAp,totalAv){
   head+='</tr>';
 
   let body=rows.map(r=>{
-    let tr=`<tr>
-      <td>${r.bail}</td>
+    var isRecup=r.bail.indexOf('Charges Recup - ')===0;
+    var bailLabel=(isRecup?'\u00A0\u00A0':'')+r.bail.replace('Charges - ','').replace('Charges Recup - ','');
+    var rowBg=isRecup?'background:rgba(230,241,251,0.3)':'';
+    let tr=`<tr style="${rowBg}">
+      <td style="font-size:13px">${bailLabel}</td>
       <td class="r">${fv(r.ap)}</td>
       <td class="r">${fv(r.av)}</td>
       <td class="r"><span class="${ecCls(r.ec)}" style="font-weight:500">${sign(r.ec)}${fv(r.ec)}</span></td>`;
@@ -557,7 +587,21 @@ function renderTab(){
     }
   }
   var tableHtml=rows.length>0?makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp,tAp,tAv):'<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r)">'+(cfg.isSurf?fmtN(Math.abs(tEc),0)+' m2':fmtE(Math.abs(tEc)))+'</div>';
-  tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+summary+asymWarning+tableHtml+'</div>';
+  var chargesExtra='';
+  if(cfg.type==='chargesAll'){
+    var amC=getAggBail(dAv,'chargesAll',y),apC=getAggBail(dAp,'chargesAll',y);
+    var totCAv=amC['__totC']||0,totRAv=amC['__totR']||0;
+    var totCAp=apC['__totC']||0,totRAp=apC['__totR']||0;
+    var pctAv=totCAv!==0?Math.abs(totRAv/totCAv*100):0;
+    var pctAp=totCAp!==0?Math.abs(totRAp/totCAp*100):0;
+    var pctEc=pctAp-pctAv;
+    chargesExtra='<div style="margin-top:12px;padding:10px 14px;background:var(--bg2);border-radius:var(--r);font-size:13px;display:flex;gap:24px;flex-wrap:wrap">'
+      +'<span><strong>Taux de r\u00E9cup\u00E9ration BP Apr\u00E8s :</strong> '+pctAp.toFixed(1)+'%</span>'
+      +'<span><strong>Taux de r\u00E9cup\u00E9ration BP Avant :</strong> '+pctAv.toFixed(1)+'%</span>'
+      +'<span><strong>\u00C9cart :</strong> <span class="'+(pctEc>=0?'pos-t':'neg-t')+'">'+(pctEc>=0?'+':'')+pctEc.toFixed(1)+'pt</span></span>'
+      +'</div>';
+  }
+  tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+summary+asymWarning+tableHtml+chargesExtra+'</div>';
 }
 
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
@@ -724,7 +768,7 @@ function buildSynthInline(){
   if(!years.length) return;
 
   function fmt(v,isSurf){
-    if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+' m²';
+    if(isSurf) return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(Math.abs(v))+'\u00A0m\u00B2';
     return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.abs(v));
   }
   function shortName(bail){ return bail.split('/')[0].trim(); }
@@ -752,21 +796,21 @@ function buildSynthInline(){
     .filter(function(b){return Math.abs(b.totalEc)>0.01;})
     .sort(function(a,b){return Math.abs(b.totalEc)-Math.abs(a.totalEc);});
 
-  // Années clés
+  // Ann\u00E9es cl\u00E9s
   var ecByYear=years.map(function(y){
     return{y:y,ec:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)};
   }).sort(function(a,b){return Math.abs(b.ec)-Math.abs(a.ec);});
 
   // Construire le texte
   var yr1=years[0],yrN=years[years.length-1];
-  var periode=yr1===yrN?'en '+yr1:'sur la période '+yr1+'–'+yrN;
+  var periode=yr1===yrN?'en '+yr1:'sur la p\u00E9riode '+yr1+'\u2013'+yrN;
   var dirLB=totalLB>=0?'progresse':'recule';
   var lines=[];
 
   // Ligne 1 : vue ensemble
   var l1=periode.charAt(0).toUpperCase()+periode.slice(1)+
-    ', le loyer brut cash cumulé '+dirLB+' de '+fmt(Math.abs(totalLB),false)+
-    ' (impact EBE : '+(totalEBE>=0?'+':'')+fmt(Math.abs(totalEBE),false)+').';
+    ', le loyer brut cash cumul\u00E9 '+dirLB+' de '+fmt(Math.abs(totalLB),false)+
+    ' (impact EBE\u00A0: '+(totalEBE>=0?'+':'')+fmt(Math.abs(totalEBE),false)+').';
   lines.push(l1);
 
   // Ligne 2 : principaux baux si dispo
@@ -777,23 +821,23 @@ function buildSynthInline(){
     var pct=Math.round(cumul/totalAbs*100);
     var noms=top.map(function(b){
       var py=b.years.sort();
-      var pd=py.length===1?'en '+py[0]:py.length===years.length?'sur toute la période':'de '+py[0]+' à '+py[py.length-1];
-      return b.name+' ('+sg(b.totalEc)+fmt(b.totalEc,false)+' '+pd+')';
+      var pd=py.length===1?'en '+py[0]:py.length===years.length?'sur toute la p\u00E9riode':'de '+py[0]+' \u00E0 '+py[py.length-1];
+      return b.name+'\u00A0('+sg(b.totalEc)+fmt(b.totalEc,false)+' '+pd+')';
     });
     var liste=noms.length===1?noms[0]:noms.slice(0,-1).join(', ')+' et '+noms[noms.length-1];
-    lines.push(pct+'% de l’écart est porté par : '+liste+'.');
+    lines.push(pct+'% de l\u2019\u00E9cart est port\u00E9 par\u00A0: '+liste+'.');
   }
 
-  // Ligne 3 : années clés si plusieurs
+  // Ligne 3 : ann\u00E9es cl\u00E9s si plusieurs
   if(ecByYear.length>1&&Math.abs(ecByYear[0].ec)>0.01){
     var top2=ecByYear.slice(0,2);
-    var yrDesc=top2.map(function(e){return e.y+' ('+sg(e.ec)+fmt(e.ec,false)+')';}).join(' et ');
-    lines.push('Écarts les plus significatifs en '+yrDesc+'.');
+    var yrDesc=top2.map(function(e){return e.y+'\u00A0('+sg(e.ec)+fmt(e.ec,false)+')';}).join(' et ');
+    lines.push('\u00C9carts les plus significatifs en '+yrDesc+'.');
   }
 
   // Ligne 4 : surface si notable
   if(Math.abs(totalSurf)>10){
-    lines.push('Surface occupée : '+(totalSurf>0?'hausse':'baisse')+' de '+fmt(Math.abs(totalSurf),true)+' sur la période.');
+    lines.push('Surface occup\u00E9e\u00A0: '+(totalSurf>0?'hausse':'baisse')+' de '+fmt(Math.abs(totalSurf),true)+' sur la p\u00E9riode.');
   }
 
   // Injecter dans la dropzone hint

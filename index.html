@@ -224,10 +224,32 @@ function parseComp(wb,sn,label){
   return{scenario,years,label,format:'comp',
     aggBailSurface:y=>abp(y,['Surface occup\u00E9e']),
     aggBailLoyerBrut:y=>{const m={};['Loyer','Franchise','Palier','Participation aux travaux preneurs'].forEach(p=>gb(p).forEach(b=>{m[b]=(m[b]||0)+gv(p,b,y);}));return m;},
+    aggBailLoyer:y=>abp(y,['Loyer','Surloyer / majoration loyer','Autres flux du bail']),
+    aggBailMesures:y=>abp(y,['Franchise','Palier','Participation aux travaux preneurs']),
+    aggBailCharges:y=>{
+      var SKIP=['EBE','Cash flow total','Occupation','Revenus Locatifs','Loyer','Honoraires de commercialisation','Ajustement charges OPEX ATR'];
+      var m={};
+      for(var i=1;i<aoa.length;i++){
+        var r=aoa[i];if(!r)continue;
+        var p=String(r[0]||'').trim();
+        var b=String(r[1]||'').trim();
+        if(b!=='Tous'&&b!=='Total')continue;
+        var ci2=yc[y];if(!ci2)continue;
+        var v=toNum(r[ci2]);if(v===0)continue;
+        var skip=false;
+        for(var s=0;s<SKIP.length;s++){if(p===SKIP[s]){skip=true;break;}}
+        if(skip)continue;
+        if(p.indexOf('Surface')>=0||p.indexOf('Place de parking')>=0||p.indexOf('Taux')>=0||p.indexOf('VLM')>=0||p==='TOF'||p.indexOf('Mesures')>=0||p.indexOf('Franchise')>=0||p.indexOf('Palier')>=0)continue;
+        m[p]=(m[p]||0)+v;
+      }
+      return m;
+    },
     aggBailHonoCom:y=>abp(y,['Honoraires de commercialisation']),
     aggBailEBE:y=>{const m={};const lb=abp(y,['Loyer','Franchise','Palier','Participation aux travaux preneurs']);const hc=abp(y,['Honoraires de commercialisation']);Object.entries(lb).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});Object.entries(hc).forEach(([b,v])=>{m[b]=(m[b]||0)+v;});return m;},
     aggTotalSurface:y=>atp(y,'Surface occup\u00E9e')||(atp(y,'Surface totale')-atp(y,'Surface vacant'))||0,
     aggTotalLoyerBrut:y=>atp(y,"Revenus Locatifs")+atp(y,"Mesures d'accompagnement"),
+    aggTotalLoyer:y=>atp(y,'Loyer'),
+    aggTotalMesures:y=>atp(y,"Mesures d'accompagnement"),
     aggTotalHonoCom:y=>atp(y,'Honoraires de commercialisation'),
     aggTotalChargesR:y=>atp(y,'Charges Recup.'),
     aggTotalCharges:y=>atp(y,'Charges'),
@@ -240,6 +262,8 @@ function parseSheet(wb,sn,label){const f=detectFmt(wb,sn);if(f==='cf')return par
 const CF={
   surface:r=>r['Sous-cat\u00E9gorie']==='Surface'&&r['Compte']===1,
   loyerBrut:r=>{const c=r['Compte'],cat=r['Cat\u00E9gorie'];return(c===1000&&cat==='Revenus Locatifs')||(cat==="Mesures d'accompagnement");},
+  loyer:r=>r['Compte']===1000&&r['Cat\u00E9gorie']==='Revenus Locatifs',
+  mesures:r=>r['Cat\u00E9gorie']==="Mesures d'accompagnement",
   honoCom:r=>r['Sous-cat\u00E9gorie']==='Honoraires de commercialisation'&&r['Compte']===8503,
   chargesR:r=>r['Compte']===5200&&r['Cat\u00E9gorie']==='Charges Recup',
   charges:r=>r['Compte']===6000&&r['Cat\u00E9gorie']==='Charges',
@@ -252,11 +276,11 @@ function getAggBail(d,t,y){
     const surfMap=isAfter?olData.masterSurf:olData.snapSurf;
     if(surfMap&&Object.keys(surfMap).length>0) return Object.fromEntries(Object.entries(surfMap).filter(([k,v])=>v>0));
   }
-  if(d.format==='comp'){if(t==='surface')return d.aggBailSurface(y);else if(t==='loyerBrut')return d.aggBailLoyerBrut(y);else if(t==='honoCom')return d.aggBailHonoCom(y);else if(t==='ebe')return d.aggBailEBE(y);}
+  if(d.format==='comp'){if(t==='surface')return d.aggBailSurface(y);else if(t==='loyerBrut')return d.aggBailLoyerBrut(y);else if(t==='loyer')return d.aggBailLoyer?d.aggBailLoyer(y):{};else if(t==='mesures')return d.aggBailMesures?d.aggBailMesures(y):{};else if(t==='honoCom')return d.aggBailHonoCom(y);else if(t==='chargesAll')return d.aggBailCharges?d.aggBailCharges(y):{};else if(t==='ebe')return d.aggBailEBE(y);}
   return d.aggBail(y,CF[t]);
 }
 function getTotal(d,t,y){
-  if(d.format==='comp'){if(t==='surface')return d.aggTotalSurface(y);if(t==='loyerBrut')return d.aggTotalLoyerBrut(y);if(t==='honoCom')return d.aggTotalHonoCom(y);if(t==='chargesR')return d.aggTotalChargesR(y);if(t==='charges')return d.aggTotalCharges(y);if(t==='ebe')return d.aggTotalEBE(y);}
+  if(d.format==='comp'){if(t==='surface')return d.aggTotalSurface(y);if(t==='loyerBrut')return d.aggTotalLoyerBrut(y);if(t==='loyer')return d.aggTotalLoyer?d.aggTotalLoyer(y):0;if(t==='mesures')return d.aggTotalMesures?d.aggTotalMesures(y):0;if(t==='honoCom')return d.aggTotalHonoCom(y);if(t==='chargesR')return d.aggTotalChargesR(y);if(t==='charges')return d.aggTotalCharges(y);if(t==='chargesAll')return(d.aggTotalChargesR?d.aggTotalChargesR(y):0)+(d.aggTotalCharges?d.aggTotalCharges(y):0);if(t==='ebe')return d.aggTotalEBE(y);}
   return d.aggTotal(y,CF[t]||CF.ebe);
 }
 function buildComp(t,y){
@@ -402,8 +426,24 @@ function makeTable(rows,isSurf,lAp,lAv,showDecomp,decomp,totalAp,totalAv){
   if(showDecomp&&decomp){
     const colSpan=hasOL?12:4;
     body+=`<tr class="tr-decomp-head"><td colspan="${colSpan-1}">D\u00E9composition de l'\u00E9cart EBE total (${sign(tEc)}${fmtE(tEc)}) :</td><td></td></tr>`;
-    decomp.forEach(d=>{
-      body+=`<tr class="tr-decomp"><td colspan="${colSpan-1}" style="padding-left:16px">${d.label}</td><td class="r"><span class="${ecCls(d.val)}" style="font-weight:500">${sign(d.val)}${fmtE(d.val)}</span></td></tr>`;
+    decomp.forEach(function(d,di){
+      var hasDetails=d.details&&d.details.length>0;
+      var detId='det-'+di+'-'+Math.random().toString(36).slice(2,6);
+      var toggleBtn=hasDetails?'<button onclick="toggleDecomp(\''+detId+'\')" style="background:none;border:1px solid var(--brd2);border-radius:4px;font-size:10px;cursor:pointer;padding:1px 6px;margin-left:8px;color:var(--text2);">+</button>':'';
+      body+='<tr class="tr-decomp"><td colspan="'+(colSpan-1)+'" style="padding-left:16px">'+d.label+toggleBtn+'</td><td class="r"><span class="'+ecCls(d.val)+'" style="font-weight:500">'+sign(d.val)+fmtE(d.val)+'</span></td></tr>';
+      if(hasDetails){
+        body+='<tr id="'+detId+'" style="display:none"><td colspan="'+colSpan+'" style="padding:0"><table style="width:100%;border-collapse:collapse">';
+        body+='<tr style="background:var(--bg3)"><th style="padding:4px 8px 4px 32px;font-size:11px;text-align:left;color:var(--text2);font-weight:500">Bail</th><th style="padding:4px 8px;font-size:11px;text-align:right;color:var(--text2);font-weight:500">Apr\u00E8s</th><th style="padding:4px 8px;font-size:11px;text-align:right;color:var(--text2);font-weight:500">Avant</th><th style="padding:4px 8px;font-size:11px;text-align:right;color:var(--text2);font-weight:500">\u00C9cart</th></tr>';
+        d.details.forEach(function(r){
+          body+='<tr style="border-top:.5px solid var(--brd)">'
+            +'<td style="padding:4px 8px 4px 32px;font-size:12px">'+r.bail+'</td>'
+            +'<td style="padding:4px 8px;font-size:12px;text-align:right;font-family:var(--mono)">'+fmtE(r.ap)+'</td>'
+            +'<td style="padding:4px 8px;font-size:12px;text-align:right;font-family:var(--mono)">'+fmtE(r.av)+'</td>'
+            +'<td style="padding:4px 8px;font-size:12px;text-align:right;font-family:var(--mono)"><span class="'+ecCls(r.ec)+'">'+sign(r.ec)+fmtE(r.ec)+'</span></td>'
+            +'</tr>';
+        });
+        body+='</table></td></tr>';
+      }
     });
   }
 
@@ -459,6 +499,14 @@ function generateSummary(rows,tEc,isSurf,typeLabel){
   return '<div style="background:var(--bg2);border-left:3px solid var(--inf);border-radius:0 var(--r) var(--r) 0;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text);line-height:1.6">'+intro+suffix+'</div>';
 }
 
+function toggleDecomp(id){
+  var el=document.getElementById(id);
+  if(!el) return;
+  var btn=el.previousElementSibling.querySelector('button');
+  if(el.style.display==='none'){el.style.display='';if(btn)btn.textContent='-';}
+  else{el.style.display='none';if(btn)btn.textContent='+';}
+}
+
 function renderApp(){
   document.getElementById('app').style.display='block';
   const cy=commonYears();
@@ -477,9 +525,10 @@ function renderTab(){
   const tc=document.getElementById('tabContent'),y=selYear;
   const TABS={
     surfaces:{type:'surface',title:`1. Analyse des \u00E9carts de surfaces \u2014 ${y}`,defn:"Surface occup\u00E9e par locataire (en m\u00B2) \u2014 locataires avec \u00E9cart uniquement",lAp:'Surface BP Apr\u00E8s (m\u00B2)',lAv:'Surface BP Avant (m\u00B2)',isSurf:true,label:'surface occup\u00E9e',decomp:false},
-    loyer_brut:{type:'loyerBrut',title:`2. Analyse des \u00E9carts de loyers bruts cash \u2014 ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement \u2014 locataires avec \u00E9cart uniquement",lAp:'Loyer Brut BP Apr\u00E8s (\u20AC)',lAv:'Loyer Brut BP Avant (\u20AC)',isSurf:false,label:'loyer brut cash',decomp:false},
+    loyer_brut:{type:'loyerBrut',title:`2. Analyse des \u00E9carts de loyers bruts cash \u2014 ${y}`,defn:"Loyer brut cash = Revenus locatifs + Mesures d'accompagnement \u2014 locataires avec \u00E9cart uniquement",lAp:'Loyer Brut BP Apr\u00E8s (\u20AC)',lAv:'Loyer Brut BP Avant (\u20AC)',isSurf:false,label:'loyer brut cash',decomp:true},
     honoraires:{type:'honoCom',title:`3. Analyse des \u00E9carts d'honoraires de commercialisation \u2014 ${y}`,defn:"Honoraires de commercialisation par locataire \u2014 locataires avec \u00E9cart uniquement",lAp:'Honoraires BP Apr\u00E8s (\u20AC)',lAv:'Honoraires BP Avant (\u20AC)',isSurf:false,label:'honoraires',decomp:false},
     loyer_net:{type:'ebe',title:`4. Analyse des \u00E9carts de loyers nets cash (EBE) \u2014 ${y}`,defn:"Loyer net = Loyer brut cash + Honoraires de commercialisation + Charges r\u00E9cup. + Charges",lAp:'Loyer Net BP Apr\u00E8s (\u20AC)',lAv:'Loyer Net BP Avant (\u20AC)',isSurf:false,label:'EBE',decomp:true},
+    charges:{type:'chargesAll',title:'5. Analyse des \u00E9carts de charges',defn:'Charges r\u00E9cup\u00E9rables et charges propri\u00E9taire, poste par poste \u2014 postes avec \u00E9cart uniquement',lAp:'BP Apr\u00E8s (\u20AC)',lAv:'BP Avant (\u20AC)',isSurf:false,label:'charges',decomp:false}
   };
   const cfg=TABS[curTab];
   const rows=buildComp(cfg.type,y),tAp=getTotal(dAp,cfg.type,y),tAv=getTotal(dAv,cfg.type,y),tEc=tAp-tAv;
@@ -487,12 +536,25 @@ function renderTab(){
   const avHasDetail=Object.keys(getAggBail(dAv,cfg.type,y)).length>0;
   const apHasDetail=Object.keys(getAggBail(dAp,cfg.type,y)).length>0;
     const asymWarning=(!avHasDetail||!apHasDetail)&&rows.length>0?'<div style="background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#713f12">\u26A0\uFE0F D\u00E9tail bail disponible uniquement en '+(apHasDetail?'BP Apr\u00E8s':'BP Avant')+' \u2014 la colonne '+(apHasDetail?'Avant':'Apr\u00E8s')+' affiche 0 par d\u00E9faut.</div>':'';
-  const decomp=cfg.decomp?[
-    {label:'  dont Loyer brut cash',val:getTotal(dAp,'loyerBrut',y)-getTotal(dAv,'loyerBrut',y)},
-    {label:'  dont Charges r\u00E9cup\u00E9rables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
-    {label:'  dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
-    {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
-  ]:null;
+  var decomp=null;
+  if(cfg.decomp){
+    if(cfg.type==='ebe'){
+      decomp=[
+        {label:'  dont Loyer facial (Revenus Locatifs)',val:getTotal(dAp,'loyer',y)-getTotal(dAv,'loyer',y)},
+        {label:"  dont Mesures d'accompagnement (Franchise, Palier, TTP)",val:getTotal(dAp,'mesures',y)-getTotal(dAv,'mesures',y)},
+        {label:'  dont Charges r\u00E9cup\u00E9rables',val:getTotal(dAp,'chargesR',y)-getTotal(dAv,'chargesR',y)},
+        {label:'  dont Charges',val:getTotal(dAp,'charges',y)-getTotal(dAv,'charges',y)},
+        {label:'  dont Honoraires de commercialisation',val:getTotal(dAp,'honoCom',y)-getTotal(dAv,'honoCom',y)},
+      ];
+    }else if(cfg.type==='loyerBrut'){
+      var loyerRows=buildComp('loyer',y);
+      var mesuresRows=buildComp('mesures',y);
+      decomp=[
+        {label:'  dont Loyer facial (Revenus Locatifs)',val:getTotal(dAp,'loyer',y)-getTotal(dAv,'loyer',y),details:loyerRows.length?loyerRows:null},
+        {label:"  dont Mesures d'accompagnement (Franchise, Palier, TTP)",val:getTotal(dAp,'mesures',y)-getTotal(dAv,'mesures',y),details:mesuresRows.length?mesuresRows:null},
+      ];
+    }
+  }
   var tableHtml=rows.length>0?makeTable(rows,cfg.isSurf,cfg.lAp,cfg.lAv,cfg.decomp,decomp,tAp,tAv):'<div style="padding:1rem;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r)">'+(cfg.isSurf?fmtN(Math.abs(tEc),0)+' m2':fmtE(Math.abs(tEc)))+'</div>';
   tc.innerHTML='<div class="card"><div class="ctx"><div>'+cfg.title+'</div><div>'+cfg.defn+'</div><div>'+ctxLine(cfg.label,tAp,tAv,cfg.isSurf)+'</div></div>'+summary+asymWarning+tableHtml+'</div>';
 }
